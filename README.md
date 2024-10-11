@@ -64,7 +64,7 @@ You can also run multiple combinations at the same time using: 'batch_eval_recog
 
 ## <div align="center">Dance Tracking Validation</div>
 
-To obtain the metrics from the validation set you can use the following command line example for K=8 and epoch=20):
+To obtain the metrics from the validation set you can use the following command line (example for K=8 and epoch=20):
 ```Shell
 python -m src.evaluator.eval_tracking --version yowo_v2_nano --len_clip 8 --eval_split val --epoch 20
 ```
@@ -75,13 +75,13 @@ You can also run multiple combinations at the same time with: 'batch_eval_tracki
 
 ### Infer on a new dataset
 
-To prepare a new datasets for inference, you have to use the following command line first:<br>
+To prepare a new datasets for inference, you have to use the following command line first:
 ```Shell
 python src/dataset/add_dataset.py --dataset name_of_the_new_dataset
 ```
 and then copy your videos to 'dataset/name_of_the_new_dataset/videos'.
 
-Then, to infer on this new dataset you can use the following command line (example):<br>
+Then, to infer on this new dataset you can use the following command line (example):
 ```Shell
 python -m src.inference.infer --version yowo_v2_nano --dataset name_of_my_dataset --video_format mp4 --len_clip 8 --img_size 960,540 --min_duration 55 --ext_tool labelme --result_video
 ```
