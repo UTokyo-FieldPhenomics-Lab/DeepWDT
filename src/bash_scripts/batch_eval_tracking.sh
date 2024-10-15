@@ -14,7 +14,7 @@ for v in "${v_values[@]}"; do
   for k in "${k_values[@]}"; do
     for e in "${e_values[@]}"; do
         echo "Running eval_tracking.py with version=$v, len_clip=$k, epoch=$e"
-        python -m src.evaluator.eval_tracking.py \
+        python -m src.evaluator.eval_tracking \
           --version "$v" \
           --len_clip "$k" \
           --img_size 224 \

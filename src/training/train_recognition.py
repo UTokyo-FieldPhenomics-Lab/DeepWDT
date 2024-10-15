@@ -50,9 +50,9 @@ def parse_args():
     #                     help='evaluate model before training.')
 
     # Batchsize
-    parser.add_argument('-bs', '--batch_size', default=16, type=int, 
+    parser.add_argument('-bs', '--batch_size', default=8, type=int,
                         help='batch size on a single GPU.')
-    parser.add_argument('-tbs', '--test_batch_size', default=16, type=int, 
+    parser.add_argument('-tbs', '--test_batch_size', default=8, type=int,
                         help='test batch size on a single GPU.')
     parser.add_argument('-accu', '--accumulate', default=1, type=int, 
                         help='gradient accumulate.')

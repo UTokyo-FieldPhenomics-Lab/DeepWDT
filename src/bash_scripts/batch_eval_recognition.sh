@@ -16,7 +16,7 @@ for v in "${v_values[@]}"; do
     for e in "${e_values[@]}"; do
       for metric in "${metrics[@]}"; do
         echo "Running eval_recognition.py with version=$v, len_clip=$k, epoch=$e, metric=$metric"
-        python -m src.evaluator.eval_recognition.py \
+        python -m src.evaluator.eval_recognition \
           --version "$v" \
           --len_clip "$k" \
           --img_size 224 \
