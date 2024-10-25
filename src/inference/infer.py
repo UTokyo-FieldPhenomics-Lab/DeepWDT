@@ -67,6 +67,8 @@ def parse_args():
                         help='')
     parser.add_argument('--decile_2', default=100, type=int, 
                         help='')
+    parser.add_argument('--mapping', action="store_true", default=False,
+                        help="memory propagate.")
     
     # others
     parser.add_argument('-method', '--translation_method', default='schurch', type=str,
@@ -332,8 +334,12 @@ def to_labelme(dataset, video_format):
     cap.release()
 
 
-def map_runs():
-    pass
+def map_runs(dataset):
+    path_tubes = os.path.join('runs/inference', dataset, 'tubes')
+    path_timestamps = os.path.join('data', dataset, 'timestamps.json')
+    path_videos = os.path.join('data', dataset, 'videos')
+    path_mapping = os.path.join('runs/inference', dataset, 'mapping')
+    os.makedirs(path_mapping, exist_ok=True)
 
 
 if __name__ == '__main__':
@@ -420,6 +426,7 @@ if __name__ == '__main__':
         print('Conversion made.')
 
     # map results
-    # map_runs()
+    if args.mapping:
+        map_runs(dataset=args.dataset)
 
     print(f'Inference on {args.dataset} is complete.')

@@ -156,7 +156,11 @@ cython_debug/
 
 # Extensions and folder
 data/training_dataset
-*.mp4
+data/others
+runs/training
+runs/evaluation
+runs/inference
+src/evaluator/training_dataset_evaluation
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

@@ -603,12 +603,13 @@ class Evaluator:
             plt.grid()
 
             if savePath is not None:
-                os.makedirs(savePath, exist_ok=True)
-                savePath_ = os.path.join(savePath, self.dataset)
-                os.makedirs(savePath_, exist_ok=True)
+                pass
+                # os.makedirs(savePath, exist_ok=True)
+                # savePath_ = os.path.join(savePath, self.dataset)
+                # os.makedirs(savePath_, exist_ok=True)
 
                 # save fig
-                plt.savefig(os.path.join(savePath_, classId + '.png'))
+                # plt.savefig(os.path.join(savePath_, classId + '.png'))
 
             if showGraphic is True:
                 plt.show()

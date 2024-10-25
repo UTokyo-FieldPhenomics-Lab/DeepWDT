@@ -10,55 +10,38 @@ def parse_args():
     return parser.parse_args()
 
 
-def add_dataset_config(new_dataset_name, new_dataset_config):
-    config_path = os.path.join('src', 'config', 'dataset_config.py')
+def add_dataset_config(dataset_name, config):
+    config_path = 'src/config/dataset_config.py'
+    with open(config_path, 'r') as f:
+        data = f.read()
 
-    # Read the existing configuration
-    with open(config_path, 'r') as file:
-        content = file.read()
+    tree = ast.parse(data)
+    dataset_config_dict = {}
 
-    tree = ast.parse(content)
-    dataset_config = None
-
-    # Walk through the AST and find the dataset_config variable
-    for node in ast.walk(tree):
+    for node in tree.body:
         if isinstance(node, ast.Assign):
-            for target in node.targets:
-                if isinstance(target, ast.Name) and target.id == 'dataset_config':
-                    dataset_config = eval(compile(ast.Expression(node.value), '', 'eval'))
+            if node.targets[0].id == 'dataset_config':
+                dataset_config_dict = ast.literal_eval(node.value)
 
-    if dataset_config is None:
-        print("Could not find 'dataset_config' in the file.")
+    if dataset_name in dataset_config_dict:
+        print(f"Dataset {dataset_name} already exists in config.")
         return False
 
-    if new_dataset_name in dataset_config:
-        print(f"Dataset '{new_dataset_name}' already exists in the configuration. Skipping addition.")
-        return False
+    dataset_config_dict[dataset_name] = config
 
-    # Add new dataset configuration
-    dataset_config[new_dataset_name] = new_dataset_config
+    with open(config_path, 'w') as f:
+        f.write(f"dataset_config = {repr(dataset_config_dict)}\n")
 
-    # Create new content for the updated dataset configuration
-    updated_config = f"dataset_config = {repr(dataset_config)}\n"
-
-    # Read the original content and replace the dataset_config
-    with open(config_path, 'w') as file:
-        # Find the dataset_config definition and replace it with the updated content
-        start_index = content.find("dataset_config")
-        if start_index != -1:
-            end_index = content.find("\n", start_index)
-            content = content[:start_index] + updated_config + content[end_index + 1:]
-        file.write(content)
-
-    print(f"Added '{new_dataset_name}' to dataset_config successfully.")
+    print(f"Dataset {dataset_name} added successfully to config.")
     return True
 
 
 def create_dataset_folders(dataset_name):
-    base_path = "dataset"
-    dataset_path = os.path.join(base_path, dataset_name)
-    videos_path = os.path.join(dataset_path, "videos")
-    os.makedirs(videos_path, exist_ok=True)
+    dataset_folder = os.path.join('data', dataset_name)
+    videos_folder = os.path.join(dataset_folder, 'videos')
+
+    os.makedirs(videos_folder, exist_ok=True)
+    print(f"Created folder structure: {videos_folder}")
 
 
 if __name__ == '__main__':

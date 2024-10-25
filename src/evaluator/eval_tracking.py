@@ -386,7 +386,7 @@ def eval(epoch, len_clip, version, correction_factor):
         to_add[f'{name}_mae'] = round(mae,2)
         to_add[f'{name}_rmse'] = round(rmse, 2)
         to_add[f'{name}_r2'] = round(r2, 2)
-        to_add[f'{name}_bias'] = round(bias, 2)        
+        to_add[f'{name}_bias'] = round(bias, 2)
         
     df_metrics = pd.concat([df_metrics, to_add], ignore_index=True)
     df_metrics.to_csv(csv_save_path, index=False)
@@ -440,26 +440,26 @@ if __name__ == '__main__':
     model = model.to(device).eval()
 
     # run
-    # detect(len_clip=args.len_clip,
-    #        eval_split=args.eval_split,
-    #        dataset=args.dataset,
-    #        nms_thresh=args.nms_thresh,
-    #        vis_thresh=args.vis_thresh,
-    #        model=model,
-    #        device=device,
-    #        transform=basetransform,
-    #        class_names=class_names,
-    #        class_colors=class_colors)
+    detect(len_clip=args.len_clip,
+           eval_split=args.eval_split,
+           dataset=args.dataset,
+           nms_thresh=args.nms_thresh,
+           vis_thresh=args.vis_thresh,
+           model=model,
+           device=device,
+           transform=basetransform,
+           class_names=class_names,
+           class_colors=class_colors)
     
-    # # run tracking
-    # track(dataset=args.dataset,
-    #     img_size=args.img_size,
-    #     decile_1=args.decile_1,
-    #     decile_2=args.decile_2,
-    #     min_duration=args.min_duration,
-    #     save_trajectory=args.save_trajectory,
-    #     max_age=args.max_age
-    #     )
+    # run tracking
+    track(dataset=args.dataset,
+        img_size=args.img_size,
+        decile_1=args.decile_1,
+        decile_2=args.decile_2,
+        min_duration=args.min_duration,
+        save_trajectory=args.save_trajectory,
+        max_age=args.max_age
+        )
 
     # eval results
     print('------------------------------')
