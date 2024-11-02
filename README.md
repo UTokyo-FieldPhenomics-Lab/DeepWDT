@@ -86,7 +86,8 @@ Then, to infer on this new dataset you can use the following command line (examp
 python -m src.inference.infer --version yowo_v2_nano --dataset name_of_my_dataset --video_format mp4 --len_clip 8 --img_size 960,540 --min_duration 55 --ext_tool labelme --result_video
 ```
 
-The weights will be sourced from 'runs/training/weights'. The --img_size parameter will automatically resize videos to the nearest multiple of 32. Our weights were trained on 224x224 video frames (448x448 video frames clipped from 1920x1080 videos and downsampled to 224x224). If you're using videos of a similar resolution (1920x1080 with a similar zoom level), it's recommended to process them similarly and set --img_size to half the size of your video resolution.
+The weights will be sourced from 'runs/training/weights'. The --img_size parameter will automatically resize videos to the nearest multiple of 32. Our latest weights available were trained on 224x224 video frames instead of the 448x448 ones used in the paper (448x448 video frames clipped from 1920x1080 videos and downsampled to 224x224). If you're using videos of a similar resolution (1920x1080 with a similar zoom level), it's recommended to process them similarly and set --img_size to half the size of your video resolution when infering.
+
 ### Translation to geographic coordinates
 
 (!) This part is under development.
