@@ -24,4 +24,17 @@ scikit-learn
 
 deep_sort_realtime
 
+pysolar
+
+timezonefinder
+
+folium
+
+geopandas
+
+pyyaml
+
 opencv-python
+
+geopy
+

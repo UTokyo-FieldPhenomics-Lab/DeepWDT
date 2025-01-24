@@ -86,6 +86,17 @@ def rescale_bboxes(bboxes, orig_size):
     return bboxes
 
 
+def rescale_bboxes_2(bboxes, orig_size, new_size):
+    orig_w, orig_h = orig_size[0], orig_size[1]
+    bboxes[..., [0, 2]] = np.clip(
+        (bboxes[..., [0, 2]] * max(new_size[0], new_size[1]) / new_size[0]) * orig_w, a_min=0., a_max=orig_w
+    )
+    bboxes[..., [1, 3]] = np.clip(
+        (bboxes[..., [1, 3]] * max(new_size[0], new_size[1]) / new_size[1]) * orig_h, a_min=0., a_max=orig_h
+    )
+
+    return bboxes
+
 
 if __name__ == '__main__':
     box1 = torch.tensor([[10, 10, 20, 20]])

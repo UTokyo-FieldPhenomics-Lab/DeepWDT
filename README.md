@@ -6,7 +6,7 @@ This repository is the official implementation of DeepWDT (Deep Waggle Dance Tra
 
 We recommend you to use Anaconda to create a conda environment:
 ```Shell
-conda create -n deepwdt python=3.8
+conda create -n deepwdt python=3.9
 ```
 
 Then, activate the environment:
