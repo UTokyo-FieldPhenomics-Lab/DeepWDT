@@ -13,63 +13,65 @@ from src.utils.nms import multiclass_nms
 
 # You Only Watch Once
 class YOWO(nn.Module):
-    def __init__(self, 
-                 cfg,
-                 device,
-                 num_classes = 20, 
-                 conf_thresh = 0.05,
-                 nms_thresh = 0.6,
-                 topk = 50,
-                 trainable = False,
-                 multi_hot = False):
+    def __init__(self, parameters, model_architecture, trainable=False):
         super(YOWO, self).__init__()
-        self.cfg = cfg
-        self.device = device
-        self.stride = cfg['stride']
-        self.num_classes = num_classes
+        self.device = parameters['DEVICE']
+        self.stride = model_architecture['stride']
+        self.num_classes = parameters['CLASSES']
         self.trainable = trainable
-        self.conf_thresh = conf_thresh
-        self.nms_thresh = nms_thresh
-        self.topk = topk
-        self.multi_hot = multi_hot
+        self.conf_thresh = parameters['CONF_THRESH']
+        self.nms_thresh = parameters['NMS_THRESH']
+        self.topk = parameters['TOP_K']
+        self.multi_hot = parameters['MULTI_HOT']
 
         # ------------------ Network ---------------------
         ## 2D backbone
         self.backbone_2d, bk_dim_2d = build_backbone_2d(
-            cfg, pretrained=cfg['pretrained_2d'] and trainable)
+            model_architecture['backbone_2d'],
+            pretrained=model_architecture['pretrained_2d'] and trainable)
             
         ## 3D backbone
         self.backbone_3d, bk_dim_3d = build_backbone_3d(
-            cfg, pretrained=cfg['pretrained_3d'] and trainable)
+            model_architecture['backbone_3d'], model_architecture['model_size'],
+            pretrained=model_architecture['pretrained_3d'] and trainable)
 
         ## cls channel encoder
         self.cls_channel_encoders = nn.ModuleList(
-            [build_channel_encoder(cfg, bk_dim_2d[i]+bk_dim_3d, cfg['head_dim'])
-                for i in range(len(cfg['stride']))])
+            [
+                build_channel_encoder(model_architecture['head_act'],
+                                      model_architecture['head_norm'],
+                                      bk_dim_2d[i]+bk_dim_3d,
+                                      model_architecture['head_dim'])
+             for i in range(len(model_architecture['stride']))
+            ])
             
         ## reg channel & spatial encoder
         self.reg_channel_encoders = nn.ModuleList(
-            [build_channel_encoder(cfg, bk_dim_2d[i]+bk_dim_3d, cfg['head_dim'])
-                for i in range(len(cfg['stride']))])
+            [build_channel_encoder(model_architecture['head_act'],
+                                   model_architecture['head_norm'],
+                                   bk_dim_2d[i]+bk_dim_3d,
+                                   model_architecture['head_dim'])
+                for i in range(len(model_architecture['stride']))
+             ])
 
         ## head
         self.heads = nn.ModuleList(
-            [build_head(cfg) for _ in range(len(cfg['stride']))]
+            [build_head(model_architecture) for _ in range(len(model_architecture['stride']))]
         ) 
 
         ## pred
-        head_dim = cfg['head_dim']
+        head_dim = model_architecture['head_dim']
         self.conf_preds = nn.ModuleList(
             [nn.Conv2d(head_dim, 1, kernel_size=1)
-                for _ in range(len(cfg['stride']))
+                for _ in range(len(model_architecture['stride']))
                 ]) 
         self.cls_preds = nn.ModuleList(
             [nn.Conv2d(head_dim, self.num_classes, kernel_size=1)
-                for _ in range(len(cfg['stride']))
+                for _ in range(len(model_architecture['stride']))
                 ]) 
         self.reg_preds = nn.ModuleList(
             [nn.Conv2d(head_dim, 4, kernel_size=1) 
-                for _ in range(len(cfg['stride']))
+                for _ in range(len(model_architecture['stride']))
                 ])                 
 
         # init yowo

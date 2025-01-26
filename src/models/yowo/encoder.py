@@ -125,12 +125,12 @@ class SpatialEncoder(nn.Module):
         return x
 
 
-def build_channel_encoder(cfg, in_dim, out_dim):
+def build_channel_encoder(head_act, head_norm, in_dim, out_dim):
     encoder = ChannelEncoder(
             in_dim=in_dim,
             out_dim=out_dim,
-            act_type=cfg['head_act'],
-            norm_type=cfg['head_norm']
+            act_type=head_act,
+            norm_type=head_norm
         )
 
     return encoder

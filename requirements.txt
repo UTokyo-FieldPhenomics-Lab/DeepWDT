@@ -38,3 +38,6 @@ opencv-python
 
 geopy
 
+mlflow
+
+petname

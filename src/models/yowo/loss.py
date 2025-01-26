@@ -34,13 +34,13 @@ class SigmoidFocalLoss(object):
 
 
 class Criterion(object):
-    def __init__(self, args, img_size, num_classes=80, multi_hot=False):
+    def __init__(self, parameters, img_size, num_classes=80, multi_hot=False):
         self.num_classes = num_classes
         self.img_size = img_size
-        self.loss_conf_weight = args.loss_conf_weight
-        self.loss_cls_weight = args.loss_cls_weight
-        self.loss_reg_weight = args.loss_reg_weight
-        self.focal_loss = args.focal_loss
+        self.loss_conf_weight = parameters['LOSS_CONF_WEIGHT']
+        self.loss_cls_weight = parameters['LOSS_CLS_WEIGHT']
+        self.loss_reg_weight = parameters['LOSS_REG_WEIGHT']
+        self.focal_loss = parameters['FOCAL_LOSS']
         self.multi_hot = multi_hot
 
         # loss
@@ -50,8 +50,8 @@ class Criterion(object):
         # matcher
         self.matcher = SimOTA(
             num_classes=num_classes,
-            center_sampling_radius=args.center_sampling_radius,
-            topk_candidate=args.topk_candicate
+            center_sampling_radius=parameters['CENTER_SAMPLING_RADIUS'],
+            topk_candidate=parameters['TOP_K']
             )
 
     def __call__(self, outputs, targets):        
@@ -166,8 +166,8 @@ class Criterion(object):
         return loss_dict
 
 
-def build_criterion(args, img_size, num_classes, multi_hot=False):
-    criterion = Criterion(args, img_size, num_classes, multi_hot)
+def build_criterion(parameters, img_size, num_classes, multi_hot=False):
+    criterion = Criterion(parameters, img_size, num_classes, multi_hot)
     
     return criterion
     

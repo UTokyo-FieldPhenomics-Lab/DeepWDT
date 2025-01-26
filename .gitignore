@@ -169,4 +169,6 @@ src/evaluator/training_dataset_evaluation
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 
+# Added
 *.MOV
+/mlruns

@@ -5,17 +5,17 @@ from ..basic.conv import Conv2d
 
 
 class DecoupledHead(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, model_architecture):
         super().__init__()
 
         print('==============================')
         print('Head: Decoupled Head')
-        self.num_cls_heads = cfg['num_cls_heads']
-        self.num_reg_heads = cfg['num_reg_heads']
-        self.act_type = cfg['head_act']
-        self.norm_type = cfg['head_norm']
-        self.head_dim = cfg['head_dim']
-        self.depthwise = cfg['head_depthwise']
+        self.num_cls_heads = model_architecture['num_cls_heads']
+        self.num_reg_heads = model_architecture['num_reg_heads']
+        self.act_type = model_architecture['head_act']
+        self.norm_type = model_architecture['head_norm']
+        self.head_dim = model_architecture['head_dim']
+        self.depthwise = model_architecture['head_depthwise']
 
         self.cls_head = nn.Sequential(*[
             Conv2d(self.head_dim, 
@@ -42,6 +42,6 @@ class DecoupledHead(nn.Module):
         return cls_feats, reg_feats
 
 
-def build_head(cfg):
-    return DecoupledHead(cfg)
+def build_head(model_architecture):
+    return DecoupledHead(model_architecture)
     

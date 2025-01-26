@@ -2,34 +2,34 @@ import torch
 from torch import optim
 
 
-def build_optimizer(cfg, model, base_lr=0.0, resume=None):
+def build_optimizer(solver, model, base_lr=0.0, resume=None):
     print('==============================')
-    print('Optimizer: {}'.format(cfg['optimizer']))
-    print('--momentum: {}'.format(cfg['momentum']))
-    print('--weight_decay: {}'.format(cfg['weight_decay']))
+    print('Optimizer: {}'.format(solver['OPTIMIZER']))
+    print('--momentum: {}'.format(solver['MOMENTUM']))
+    print('--weight_decay: {}'.format(solver['WEIGHT_DECAY']))
     print('----------------------------------------------------------')
 
-    if cfg['optimizer'] == 'sgd':
+    if solver['OPTIMIZER'] == 'sgd':
         optimizer = optim.SGD(
             model.parameters(), 
             lr=base_lr,
-            momentum=cfg['momentum'],
-            weight_decay=cfg['weight_decay'])
+            momentum=solver['MOMENTUM'],
+            weight_decay=solver['weight_decay'])
 
-    elif cfg['optimizer'] == 'adam':
+    elif solver['OPTIMIZER'] == 'adam':
         optimizer = optim.Adam(
             model.parameters(), 
             lr=base_lr,
-            eight_decay=cfg['weight_decay'])
+            eight_decay=solver['WEIGHT_DECAY'])
                                 
-    elif cfg['optimizer'] == 'adamw':
+    elif solver['OPTIMIZER'] == 'adamw':
         optimizer = optim.AdamW(
             model.parameters(), 
             lr=base_lr,
-            weight_decay=cfg['weight_decay'])
+            weight_decay=solver['WEIGHT_DECAY'])
           
     start_epoch = 0
-    if resume is not None:
+    if resume:
         print('keep training: ', resume)
         checkpoint = torch.load(resume)
         # checkpoint state dict

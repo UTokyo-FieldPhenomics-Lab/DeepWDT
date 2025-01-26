@@ -13,96 +13,32 @@ from src.evaluator.training_dataset_evaluator import TRAINING_DATASET_Evaluator
 # from src.evaluator.ava_evaluator import AVA_Evaluator
 
 
-def build_dataset(d_cfg, args, is_train=False, eval_split=None):
-    """
-        d_cfg: dataset config
-    """
+def build_dataset(parameters, is_train=False, eval_split=None):
     # transform
     augmentation = Augmentation(
-        img_size=d_cfg['train_size'],
-        jitter=d_cfg['jitter'],
-        hue=d_cfg['hue'],
-        saturation=d_cfg['saturation'],
-        exposure=d_cfg['exposure']
+        img_size=parameters['IMAGE_SIZE'],
+        jitter=parameters['AUGMENTATION']['JITTER'],
+        hue=parameters['AUGMENTATION']['HUE'],
+        saturation=parameters['AUGMENTATION']['SATURATION'],
+        exposure=parameters['AUGMENTATION']['EXPOSURE']
         )
     basetransform = BaseTransform(
-        img_size=d_cfg['test_size'],
+        img_size=parameters['IMAGE_SIZE'],
         )
 
     # dataset
-    if args.dataset in ['ucf24', 'jhmdb21']:
-        data_dir = os.path.join(args.root, 'ucf24')
-
-        # dataset
-        dataset = UCF_JHMDB_Dataset(
-            data_root=data_dir,
-            dataset=args.dataset,
-            img_size=d_cfg['train_size'],
-            transform=augmentation,
-            is_train=is_train,
-            len_clip=args.len_clip,
-            sampling_rate=d_cfg['sampling_rate']
-            )
-        num_classes = dataset.num_classes
-
-        # evaluator
-        evaluator = UCF_JHMDB_Evaluator(
-            data_root=data_dir,
-            dataset=args.dataset,
-            model_name=args.version,
-            metric='fmap',
-            img_size=d_cfg['test_size'],
-            len_clip=args.len_clip,
-            batch_size=args.test_batch_size,
-            conf_thresh=0.01,
-            iou_thresh=0.5,
-            gt_folder=d_cfg['gt_folder'],
-            save_path='./evaluator/eval_results/',
-            transform=basetransform,
-            collate_fn=CollateFunc()            
-        )
-
-    elif args.dataset == 'ava_v2.2':
-        data_dir = os.path.join(args.root, 'AVA_Dataset')
-        
-        # dataset
-        dataset = AVA_Dataset(
-            cfg=d_cfg,
-            data_root=data_dir,
-            is_train=True,
-            img_size=d_cfg['train_size'],
-            transform=augmentation,
-            len_clip=args.len_clip,
-            sampling_rate=d_cfg['sampling_rate']
-        )
-        num_classes = 80
-
-        # evaluator
-        evaluator = AVA_Evaluator(
-            d_cfg=d_cfg,
-            data_root=data_dir,
-            img_size=d_cfg['test_size'],
-            len_clip=args.len_clip,
-            sampling_rate=d_cfg['sampling_rate'],
-            batch_size=args.test_batch_size,
-            transform=basetransform,
-            collate_fn=CollateFunc(),
-            full_test_on_val=False,
-            version='v2.2'
-            )
-
-    elif args.dataset == 'training_dataset':
-        data_dir = os.path.join(args.root, 'training_dataset')
+    if parameters['DATASET'] == 'training_dataset':
+        data_dir = os.path.join('data/', 'training_dataset')
         
         # dataset
         dataset = Training_Dataset(
             data_root=data_dir,
-            dataset=args.dataset,
-            img_size=d_cfg['train_size'],
+            dataset=parameters['DATASET'],
+            img_size=parameters['IMAGE_SIZE'],
             transform=augmentation,
             is_train=is_train,
-            len_clip=args.len_clip,
-            sampling_rate=d_cfg['sampling_rate'],
+            len_clip=parameters['LEN_CLIP'],
+            sampling_rate=parameters['SAMPLING_RATE'],
             eval_split=eval_split
             )
         
@@ -111,15 +47,15 @@ def build_dataset(d_cfg, args, is_train=False, eval_split=None):
         # evaluator
         evaluator = TRAINING_DATASET_Evaluator(
             data_root=data_dir,
-            dataset=args.dataset,
-            model_name=args.version,
+            dataset=parameters['DATASET'],
+            model_name=parameters['MODEL_VERSION'],
             metric='fmap',
-            img_size=d_cfg['test_size'],
-            len_clip=args.len_clip,
-            batch_size=args.test_batch_size,
-            conf_thresh=0.01,
-            iou_thresh=0.5,
-            gt_folder=d_cfg['gt_folder'],
+            img_size=parameters['IMAGE_SIZE'],
+            len_clip=parameters['LEN_CLIP'],
+            batch_size=parameters['BATCH_SIZE']['EVAL'],
+            conf_thresh=parameters['CONF_THRESH'],
+            iou_thresh=parameters['IOU_THRESH'],
+            gt_folder='src/evaluator/training_dataset_evaluation/',
             save_path='./evaluator/eval_results/',
             transform=basetransform,
             collate_fn=CollateFunc(),
@@ -131,42 +67,34 @@ def build_dataset(d_cfg, args, is_train=False, eval_split=None):
         exit(0)
 
     print('==============================')
-    print('Training model on:', args.dataset)
+    print('Training model on:', parameters['DATASET'])
     print('The dataset size:', len(dataset))
-
-    if not args.eval:
-        # no evaluator during training stage
-        evaluator = None
 
     return dataset, evaluator, num_classes
 
 
-def build_dataloader(args, dataset, batch_size, collate_fn=None, is_train=False):
+def build_dataloader(parameters, dataset, collate_fn=None, is_train=False):
+
     if is_train:
-        # distributed
-        if args.distributed:
-            sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-        else:
-            sampler = torch.utils.data.RandomSampler(dataset)
+        sampler = torch.utils.data.RandomSampler(dataset)
 
         batch_sampler_train = torch.utils.data.BatchSampler(sampler, 
-                                                            batch_size, 
+                                                            parameters['BATCH_SIZE']['TRAIN'],
                                                             drop_last=True)
-        # train dataloader
+
         dataloader = torch.utils.data.DataLoader(
             dataset=dataset, 
             batch_sampler=batch_sampler_train,
             collate_fn=collate_fn, 
-            num_workers=args.num_workers,
+            num_workers=parameters['NUM_WORKERS'],
             pin_memory=True
             )
     else:
-        # test dataloader
         dataloader = torch.utils.data.DataLoader(
             dataset=dataset, 
             shuffle=False,
             collate_fn=collate_fn, 
-            num_workers=args.num_workers,
+            num_workers=parameters['NUM_WORKERS'],
             drop_last=False,
             pin_memory=True
             )

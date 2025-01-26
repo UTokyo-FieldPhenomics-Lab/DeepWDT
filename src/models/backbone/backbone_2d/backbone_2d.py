@@ -3,11 +3,9 @@ from .cnn_2d import build_2d_cnn
 
 
 class Backbone2D(nn.Module):
-    def __init__(self, cfg, pretrained=False):
+    def __init__(self, backbone_2d, pretrained=False):
         super().__init__()
-        self.cfg = cfg
-
-        self.backbone, self.feat_dims = build_2d_cnn(cfg, pretrained)
+        self.backbone, self.feat_dims = build_2d_cnn(backbone_2d, pretrained)
 
         
     def forward(self, x):

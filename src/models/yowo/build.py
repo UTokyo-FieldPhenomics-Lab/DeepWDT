@@ -4,41 +4,26 @@ from .loss import build_criterion
 
 
 # build YOWO detector
-def build_yowo(args,
-                d_cfg,
-                m_cfg, 
-                device, 
-                num_classes=80, 
-                trainable=False,
-                resume=None):
+def build_yowo(parameters, model_architecture, trainable=False):
     print('==============================')
-    print('Build {} ...'.format(args.version.upper()))
+    print('Build {} ...'.format(parameters['MODEL_VERSION']))
 
     # build YOWO
-    model = YOWO(
-        cfg = m_cfg,
-        device = device,
-        num_classes = num_classes,
-        conf_thresh = args.conf_thresh,
-        nms_thresh = args.nms_thresh,
-        topk = args.topk,
-        trainable = trainable,
-        multi_hot = d_cfg['multi_hot'],
-        )
+    model = YOWO(parameters, model_architecture, trainable = trainable,)
 
     if trainable:
         # Freeze backbone
-        if args.freeze_backbone_2d:
+        if parameters['FREEZE_BACKBONE_2D']:
             print('Freeze 2D Backbone ...')
             for m in model.backbone_2d.parameters():
                 m.requires_grad = False
-        if args.freeze_backbone_3d:
+        if parameters['FREEZE_BACKBONE_3D']:
             print('Freeze 3D Backbone ...')
             for m in model.backbone_3d.parameters():
                 m.requires_grad = False
             
-        # keep training       
-        if resume is not None:
+        # keep training
+        if parameters['RESUME']:
             print('keep training: ', resume)
             checkpoint = torch.load(resume, map_location='cpu')
             # checkpoint state dict
@@ -47,7 +32,11 @@ def build_yowo(args,
 
         # build criterion
         criterion = build_criterion(
-            args, d_cfg['train_size'], num_classes, d_cfg['multi_hot'])
+            parameters,
+            parameters['IMAGE_SIZE'],
+            parameters['CLASSES'],
+            parameters['MULTI_HOT'],
+        )
     
     else:
         criterion = None
