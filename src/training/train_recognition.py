@@ -15,10 +15,11 @@ import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from src.dummy_mlflow import NoOpMLflow
 from src.utils import distributed_utils
 from src.utils.com_flops_params import FLOPs_and_Params
+from src.utils.dummy_mlflow import NoOpMLflow
 from src.utils.misc import CollateFunc, build_dataset, build_dataloader
+from src.utils.log import print_log
 from src.utils.solver.optimizer import build_optimizer
 from src.utils.solver.warmup_schedule import get_lr_scheduler, set_optimizer_lr
 from src.config import build_dataset_config, build_model_config
@@ -31,18 +32,13 @@ GLOBAL_SEED = 42
 def train(parameters, models_architecture):
     print("Arguments: ", parameters)
 
-    # device used for training
-    device = torch.device(parameters['DEVICE'])
-
-    # dataset and evaluator
     dataset, _, num_classes = build_dataset(parameters, is_train=True)
-
-    # dataloader
     dataloader = build_dataloader(parameters, dataset, CollateFunc(), is_train=True)
+    max_epoch = parameters['MAX_EPOCH']
+    epoch_size = len(dataloader)
 
-    # build model
     model, criterion = build_model(parameters, models_architecture[parameters['MODEL_VERSION']], trainable=True)
-
+    device = torch.device(parameters['DEVICE'])
     model = model.to(device).train()
 
     # DDP
@@ -56,7 +52,7 @@ def train(parameters, models_architecture):
         print('use SyncBatchNorm ...')
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
-    # optimizer & warmup scheduler
+    # Optimizer & warmup scheduler
     base_lr = parameters['SOLVER']['BASE_LR']
     min_lr_ratio = parameters['SOLVER']['MIN_LR_RATIO']
     warmup_epoch = parameters['SOLVER']['WARMUP_EPOCH']
@@ -64,61 +60,58 @@ def train(parameters, models_architecture):
     accumulate = parameters['SOLVER']['ACCUMULATE']
     optimizer, start_epoch = build_optimizer(parameters['SOLVER'], model_without_ddp, 0, parameters['RESUME'])
 
-    # training configuration
-    max_epoch = parameters['MAX_EPOCH']
-    epoch_size = len(dataloader)
-
-    # start to train
+    # Start to train
     t0 = time.time()
     for epoch in range(start_epoch, max_epoch):
         if parameters['DISTRIBUTION']['DISTRIBUTED']:
             dataloader.batch_sampler.sampler.set_epoch(epoch)            
 
-        # train one epoch
         for iter_i, (frame_ids, video_clips, targets) in enumerate(dataloader):
             ni = iter_i + epoch * epoch_size
 
-            # to device
             video_clips = video_clips.to(device)
-
-            # inference
             outputs = model(video_clips)
             
-            # loss
+            # Loss calculation
             loss_dict = criterion(outputs, targets)
             losses = loss_dict['losses']
-
-            # reduce            
             loss_dict_reduced = distributed_utils.reduce_dict(loss_dict)
-
-            # check loss
             if torch.isnan(losses):
                 print('loss is NAN !!')
                 continue
 
-            # Backward
+            # Optimize
             losses /= accumulate
             losses.backward()
-
-            # Optimize
             if ni % accumulate == 0:
                 optimizer.step()
                 optimizer.zero_grad()
                     
-            # Display
+            # Log
             if distributed_utils.is_main_process() and iter_i % 10 == 0:
                 t1 = time.time()
+                delta = t1-t0
+
+                # Console log
                 cur_lr = [param_group['lr']  for param_group in optimizer.param_groups]
-                print_log(cur_lr, epoch,  max_epoch, iter_i, epoch_size,loss_dict_reduced, t1-t0, accumulate)
-            
+                print_log(cur_lr, epoch,  max_epoch, iter_i, epoch_size, loss_dict_reduced, delta, accumulate)
+
+                # MLflow log
+                mlflow.log_metric('lr', cur_lr[0], step=iter_i)
+                for k in loss_dict_reduced.keys():
+                    if k == 'losses':
+                        mlflow.log_metric(k, loss_dict_reduced[k]* accumulate, step=iter_i)
+                    else:
+                        mlflow.log_metric(k, loss_dict_reduced[k], step=iter_i)
+                mlflow.log_metric('time (s)', delta, step=iter_i)
+
                 t0 = time.time()
 
-            # warmup
+            # Warmup
             lr_scheduler_func = get_lr_scheduler(lr=base_lr, warmup_total_iters = warmup_epoch*epoch_size, no_aug_iters = no_decrease_lr_epoch*epoch_size, total_iters = max_epoch*epoch_size, warmup_lr_start = 0, min_lr_ratio = min_lr_ratio)
             set_optimizer_lr(optimizer, lr_scheduler_func, ni)
 
-
-        # save model
+        # Save the model
         version = parameters['MODEL_VERSION'].split('_')[-1]
         len_clip = parameters['LEN_CLIP']
         path_to_save = os.path.join('runs/training/weights', f'{version}_K{len_clip}')
@@ -132,24 +125,6 @@ def train(parameters, models_architecture):
                             'epoch': epoch,
                             'args': parameters},
                             checkpoint_path)  
-
-def print_log(lr, epoch, max_epoch, iter_i, epoch_size, loss_dict, time, accumulate):
-    # basic infor
-    log =  '[Epoch: {}/{}]'.format(epoch+1, max_epoch)
-    log += '[Iter: {}/{}]'.format(iter_i, epoch_size)
-    log += '[lr: {:.6f}]'.format(lr[0])
-    # loss infor
-    for k in loss_dict.keys():
-        if k == 'losses':
-            log += '[{}: {:.2f}]'.format(k, loss_dict[k] * accumulate)
-        else:
-            log += '[{}: {:.2f}]'.format(k, loss_dict[k])
-
-    # other infor
-    log += '[time: {:.2f}]'.format(time)
-
-    # print log infor
-    print(log, flush=True)
 
 
 if __name__ == '__main__':
