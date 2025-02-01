@@ -2,6 +2,16 @@
 
 This repository is the official implementation of DeepWDT (Deep Waggle Dance Translator), the most efficient and easy-to-use deep learning framework to detect and decode waggle dances.
 
+## <div align="center">To-do</div>
+- [ ] Add a clear protocol to shoot and use custom videos appropriately
+- [X] Add MLflow support to the training loop
+- [ ] Add recognition and tracking evaluation directly to the training loop
+- [ ] Include a simpler tracking algorithm to reduce the inference time
+- [ ] Include a small recognition model to reduce the inference time 
+- [ ] Add an easier way to manually correct outputs from the inference
+- [ ] Add the ONNX format support
+- [ ] Make a notebook for easy inference from online
+  
 ## <div align="center">Requirements</div>
 
 We recommend you to use Anaconda to create a conda environment:
