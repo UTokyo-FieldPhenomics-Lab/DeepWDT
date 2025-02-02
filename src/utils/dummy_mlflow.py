@@ -7,6 +7,8 @@ class NoOpRun:
 
 class NoOpMLflow:
     """A dummy MLflow wrapper for when MLflow is not installed or disabled."""
+    def __init__(self, run_name):
+        self.run_name = run_name
     @staticmethod
     def start_run(run_name=None):
         print(f"[NoOpMLflow] Starting a run with name: {run_name}")

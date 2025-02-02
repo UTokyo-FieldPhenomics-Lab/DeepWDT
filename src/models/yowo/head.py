@@ -8,8 +8,6 @@ class DecoupledHead(nn.Module):
     def __init__(self, model_architecture):
         super().__init__()
 
-        print('==============================')
-        print('Head: Decoupled Head')
         self.num_cls_heads = model_architecture['num_cls_heads']
         self.num_reg_heads = model_architecture['num_reg_heads']
         self.act_type = model_architecture['head_act']

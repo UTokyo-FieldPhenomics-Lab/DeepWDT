@@ -237,8 +237,6 @@ class PaFPNELAN(nn.Module):
 
 def build_fpn(cfg, in_dims, out_dim):
     model = cfg['fpn']
-    print('==============================')
-    print('FPN: {}'.format(model))
     # build neck
     if model == 'pafpn_elan':
         fpn_net = PaFPNELAN(in_dims=in_dims,

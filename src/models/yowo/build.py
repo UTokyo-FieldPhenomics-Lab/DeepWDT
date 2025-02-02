@@ -5,8 +5,6 @@ from .loss import build_criterion
 
 # build YOWO detector
 def build_yowo(parameters, model_architecture, trainable=False):
-    print('==============================')
-    print('Build {} ...'.format(parameters['MODEL_VERSION']))
 
     # build YOWO
     model = YOWO(parameters, model_architecture, trainable = trainable,)
@@ -14,17 +12,14 @@ def build_yowo(parameters, model_architecture, trainable=False):
     if trainable:
         # Freeze backbone
         if parameters['FREEZE_BACKBONE_2D']:
-            print('Freeze 2D Backbone ...')
             for m in model.backbone_2d.parameters():
                 m.requires_grad = False
         if parameters['FREEZE_BACKBONE_3D']:
-            print('Freeze 3D Backbone ...')
             for m in model.backbone_3d.parameters():
                 m.requires_grad = False
             
         # keep training
         if parameters['RESUME']:
-            print('keep training: ', resume)
             checkpoint = torch.load(resume, map_location='cpu')
             # checkpoint state dict
             checkpoint_state_dict = checkpoint.pop("model")

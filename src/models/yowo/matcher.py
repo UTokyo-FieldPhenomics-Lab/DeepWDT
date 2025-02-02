@@ -56,7 +56,8 @@ class SimOTA(object):
         # [N, C] -> [N, Mp, C]
         gt_cls = gt_cls.float().unsqueeze(1).repeat(1, num_in_boxes_anchor, 1)
 
-        with torch.cuda.amp.autocast(enabled=False):
+        # with torch.cuda.amp.autocast(enabled=False): # autocast fix
+        with torch.amp.autocast("cuda", enabled=False):
             score_preds_ = torch.sqrt(
                 cls_preds_.float().unsqueeze(0).repeat(num_gt, 1, 1).sigmoid_()
                 * conf_preds_.float().unsqueeze(0).repeat(num_gt, 1, 1).sigmoid_()

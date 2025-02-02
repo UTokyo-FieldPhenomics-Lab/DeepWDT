@@ -4,9 +4,6 @@ from .shufflnetv2 import build_shufflenetv2_3d
 
 
 def build_3d_cnn(backbone_3d, model_size, pretrained=False):
-    print('==============================')
-    print('3D Backbone: {}'.format(backbone_3d.upper()))
-    print('--pretrained: {}'.format(pretrained))
 
     if 'resnet' in backbone_3d:
         model, feat_dims = build_resnet_3d(

@@ -330,14 +330,15 @@ class ShuffleNetV2(nn.Module):
                  with_last_conv=False,
                  kernal_size=3):
         super(ShuffleNetV2, self).__init__()
-        print('model size is ', model_size)
 
         self.stage_repeats = [4, 8, 4]
         self.model_size = model_size
         self.out_stages = out_stages
         self.with_last_conv = with_last_conv
         self.kernal_size = kernal_size
-        if model_size == '0.5x':
+        if model_size == '0.25x':
+            self._stage_out_channels = [24, 32, 64, 128]
+        elif model_size == '0.5x':
             self._stage_out_channels = [24, 48, 96, 192]
         elif model_size == '1.0x':
             self._stage_out_channels = [24, 116, 232, 464]
@@ -373,7 +374,6 @@ class ShuffleNetV2(nn.Module):
 
 
     def _initialize_weights(self):
-        print('init weights...')
         for name, m in self.named_modules():
             if isinstance(m, nn.Conv2d):
                 if 'first' in name:
@@ -431,6 +431,9 @@ def build_backbone(model_name='elannet_large'):
 
     elif model_name in ['shufflenetv2_0.5x', 'shufflenetv2_1.0x']:
         return build_shufflenetv2(model_size=model_name[-4:])
+
+    elif model_name in ['shufflenetv2_0.25x']:
+        return build_shufflenetv2(model_size=model_name[-5:])
         
 
 if __name__ == '__main__':

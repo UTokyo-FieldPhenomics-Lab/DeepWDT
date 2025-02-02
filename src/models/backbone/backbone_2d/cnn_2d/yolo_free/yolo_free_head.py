@@ -11,8 +11,6 @@ class DecoupledHead(nn.Module):
     def __init__(self, cfg):
         super().__init__()
 
-        print('==============================')
-        print('Head: Decoupled Head')
         self.num_cls_head=cfg['num_cls_head']
         self.num_reg_head=cfg['num_reg_head']
         self.act_type=cfg['head_act']

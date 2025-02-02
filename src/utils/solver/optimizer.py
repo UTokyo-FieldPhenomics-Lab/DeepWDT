@@ -3,11 +3,6 @@ from torch import optim
 
 
 def build_optimizer(solver, model, base_lr=0.0, resume=None):
-    print('==============================')
-    print('Optimizer: {}'.format(solver['OPTIMIZER']))
-    print('--momentum: {}'.format(solver['MOMENTUM']))
-    print('--weight_decay: {}'.format(solver['WEIGHT_DECAY']))
-    print('----------------------------------------------------------')
 
     if solver['OPTIMIZER'] == 'sgd':
         optimizer = optim.SGD(

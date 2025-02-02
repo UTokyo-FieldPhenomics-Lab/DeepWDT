@@ -193,14 +193,12 @@ class ResNet(nn.Module):
 
 
 def load_weight(model, arch):
-    print('Loading pretrained weight ...')
     url = model_urls[arch]
     # check
     if url is None:
         print('No pretrained weight for 3D CNN: {}'.format(arch.upper()))
         return model
 
-    print('Loading 3D backbone pretrained weight: {}'.format(arch.upper()))
     # checkpoint state dict
     checkpoint = load_state_dict_from_url(url=url, map_location="cpu", check_hash=True)
     checkpoint_state_dict = checkpoint.pop('state_dict')

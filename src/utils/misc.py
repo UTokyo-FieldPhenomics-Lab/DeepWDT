@@ -3,14 +3,10 @@ import os
 import torch
 import torch.nn as nn
 
-# from dataset.ucf_jhmdb import UCF_JHMDB_Dataset
-# from dataset.ava import AVA_Dataset
 from src.dataset.training_dataset import Training_Dataset
 from src.dataset.transforms import Augmentation, BaseTransform
 
 from src.evaluator.training_dataset_evaluator import TRAINING_DATASET_Evaluator
-# from src.evaluator.ucf_jhmdb_evaluator import UCF_JHMDB_Evaluator
-# from src.evaluator.ava_evaluator import AVA_Evaluator
 
 
 def build_dataset(parameters, is_train=False, eval_split=None):
@@ -28,7 +24,7 @@ def build_dataset(parameters, is_train=False, eval_split=None):
 
     # dataset
     if parameters['DATASET'] == 'training_dataset':
-        data_dir = os.path.join('data/', 'training_dataset')
+        data_dir = os.path.join('data', 'training_dataset')
         
         # dataset
         dataset = Training_Dataset(
@@ -65,10 +61,6 @@ def build_dataset(parameters, is_train=False, eval_split=None):
     else:
         print('unknow dataset.')
         exit(0)
-
-    print('==============================')
-    print('Training model on:', parameters['DATASET'])
-    print('The dataset size:', len(dataset))
 
     return dataset, evaluator, num_classes
 

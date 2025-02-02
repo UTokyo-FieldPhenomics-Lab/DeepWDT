@@ -106,7 +106,9 @@ class YOWO(nn.Module):
         """
         # generate grid cells
         fmp_h, fmp_w = fmp_size
-        anchor_y, anchor_x = torch.meshgrid([torch.arange(fmp_h), torch.arange(fmp_w)])
+        # anchor_y, anchor_x = torch.meshgrid([torch.arange(fmp_h), torch.arange(fmp_w)]) # meshgrid fix
+        anchor_y, anchor_x = torch.meshgrid([torch.arange(fmp_h), torch.arange(fmp_w)], indexing="ij")
+
         # [H, W, 2] -> [HW, 2]
         anchor_xy = torch.stack([anchor_x, anchor_y], dim=-1).float().view(-1, 2) + 0.5
         anchor_xy *= stride
@@ -366,6 +368,7 @@ class YOWO(nn.Module):
         """                        
         if not self.trainable:
             return self.inference(video_clips)
+
         else:
             # key frame
             key_frame = video_clips[:, :, -1, :, :]

@@ -830,7 +830,6 @@ def getBoundingBoxes(directory,
                      allClasses=None,
                      imgSize=(0, 0)):
     """Read txt files containing bounding boxes (ground truth and detections)."""
-    print(directory)
     if allBoundingBoxes is None:
         allBoundingBoxes = BoundingBoxes()
     if allClasses is None:

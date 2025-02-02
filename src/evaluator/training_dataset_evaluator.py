@@ -1,13 +1,13 @@
 from datetime import datetime
 import os
 
-import torch
-import pandas as pd
 import numpy as np
+import pandas as pd
 import shutil
+import torch
 from scipy.io import loadmat
+from tqdm import tqdm
 
-# from src.dataset.ucf_jhmdb import UCF_JHMDB_Dataset, UCF_JHMDB_VIDEO_Dataset
 from src.dataset.training_dataset import Training_Dataset, Training_Video_Dataset
 from src.utils.box_ops import rescale_bboxes
 
@@ -51,9 +51,6 @@ class TRAINING_DATASET_Evaluator(object):
 
         self.save_path = save_path
 
-        # self.gt_file = os.path.join(data_root, 'splitfiles/finalAnnots.mat')
-        # self.testlist = os.path.join(data_root, 'splitfiles/testlist01.txt')
-
         self.gt_file = os.path.join(data_root, 'splitfiles/finalAnnots.mat')
         if 'test' in self.gt_folder:
             self.testlist = os.path.join(data_root, 'splitfiles/testlist01.txt')
@@ -72,6 +69,7 @@ class TRAINING_DATASET_Evaluator(object):
                 sampling_rate=1,
                 eval_split=self.eval_split)
             self.num_classes = self.testset.num_classes
+
         elif metric == 'vmap':
             self.testset = Training_Video_Dataset(
                 data_root=data_root,
@@ -83,8 +81,8 @@ class TRAINING_DATASET_Evaluator(object):
             self.num_classes = self.testset.num_classes
 
 
-    def evaluate_frame_map(self, model, epoch=1, show_pr_curve=False):
-        print("Metric: Frame mAP")
+    def evaluate_frame_map(self, model, run_name, show_pr_curve=False):
+        print('Evaluating Frame mAP ...')
         # dataloader
         self.testloader = torch.utils.data.DataLoader(
             dataset=self.testset, 
@@ -97,7 +95,7 @@ class TRAINING_DATASET_Evaluator(object):
             )
         
         epoch_size = len(self.testloader)
-        path_model_outputs = f'runs/evaluation/recognition/model_outputs'
+        path_model_outputs = f'runs/train/{run_name}/model_outputs'
 
         if not os.path.exists(path_model_outputs):
             os.makedirs(path_model_outputs)
@@ -106,7 +104,7 @@ class TRAINING_DATASET_Evaluator(object):
             os.makedirs(path_model_outputs)
 
         # inference
-        for iter_i, (batch_frame_id, batch_video_clip, batch_target) in enumerate(self.testloader):
+        for iter_i, (batch_frame_id, batch_video_clip, batch_target) in enumerate(tqdm(self.testloader)):
             # to device
             batch_video_clip = batch_video_clip.to(model.device)
 
@@ -140,18 +138,8 @@ class TRAINING_DATASET_Evaluator(object):
                                 str(cls_id) + ' ' + str(score) + ' ' \
                                     + str(x1) + ' ' + str(y1) + ' ' + str(x2) + ' ' + str(y2) + '\n')
 
-                if iter_i % 100 == 0:
-                    log_info = "[%d / %d]" % (iter_i, epoch_size)
-                    print(log_info, flush=True)
-
-        print('calculating Frame mAP ...')
         metric_list = evaluate_frameAP(self.gt_folder, path_model_outputs, self.iou_thresh,
                               self.save_path, self.dataset, show_pr_curve)
-        for metric in metric_list:
-            print(metric)
-
-        # current_folder = os.getcwd()
-        # print("Current folder:", current_folder)
 
         csv_save_path = os.path.join(os.path.dirname(os.getcwd()),"evalf.csv")
 
@@ -163,20 +151,21 @@ class TRAINING_DATASET_Evaluator(object):
         else:
             df_valmap = pd.DataFrame()
 
-        to_add = pd.DataFrame({'version': [self.model_name],
+        dict_results = {'version': [self.model_name],
                    'K': [self.len_clip],
                    'epoch': [self.epoch],
                    'split': [self.eval_split],
                    'mAP': [metric_list[1][5:-1]],
-                   #'time':datetime.now().strftime("%d/%m/%Y %H:%M"),
-                   })
+                   }
 
-        df_valmap = pd.concat([df_valmap, to_add], ignore_index=True)
+        df_valmap = pd.concat([df_valmap, pd.DataFrame(dict_results)], ignore_index=True)
         df_valmap.to_csv(csv_save_path, index=False)
 
+        return [metric_list[1][5:-1]]
 
-    def evaluate_video_map(self, model):
-        print("Metric: Video mAP")
+
+    def evaluate_video_map(self, model, run_name):
+        print('Evaluating Video mAP ...')
         video_testlist = []
         with open(self.testlist, 'r') as file:
             lines = file.readlines()
@@ -190,7 +179,6 @@ class TRAINING_DATASET_Evaluator(object):
         # get ground truth
         gt_data = loadmat(self.gt_file)['annot']
         n_videos = gt_data.shape[1]
-        print('loading gt tubes ...')
         for i in range(n_videos):
             video_name = str(gt_data[0][i][1][0]).strip()
             if video_name in video_testlist:
@@ -221,10 +209,9 @@ class TRAINING_DATASET_Evaluator(object):
         # print(gt_videos)
 
         # inference
-        print('inference ...')
-        for i, line in enumerate(lines):
+        for i, line in enumerate(tqdm(lines)):
             line = line.rstrip()
-            print('Video: [%d / %d] - %s' % (i, len(lines), line))
+            # print('Video: [%d / %d] - %s' % (i, len(lines), line))
             
             # set video
             self.testset.set_video_data(line)
@@ -275,7 +262,7 @@ class TRAINING_DATASET_Evaluator(object):
 
         iou_list = [0.05, 0.1, 0.2, 0.3, 0.5, 0.75]
 
-        csv_save_path = os.path.join("runs/evaluation/recognition", "evalv.csv")
+        csv_save_path = os.path.join(f"runs/train/{run_name}", "evalv.csv")
 
         if not os.path.exists(os.path.dirname(csv_save_path)):
             os.makedirs(os.path.dirname(csv_save_path))
@@ -292,19 +279,19 @@ class TRAINING_DATASET_Evaluator(object):
                    #'time':datetime.now().strftime("%d/%m/%Y %H:%M")
                    }
 
-        print('calculating video mAP ...')
-
         for iou_th in iou_list:
             per_ap = evaluate_videoAP(gt_videos, detected_boxes, self.num_classes, iou_th, True)
             video_mAP = sum(per_ap) / len(per_ap)
             to_add[f'{iou_th}'] = video_mAP
-            print('-------------------------------')
-            print('V-mAP @ {} IoU:'.format(iou_th))
-            print('--Per AP: ', per_ap)
-            print('--mAP: ', round(video_mAP, 2))
+            # print('-------------------------------')
+            # print('V-mAP @ {} IoU:'.format(iou_th))
+            # print('--Per AP: ', per_ap)
+            # print('--mAP: ', round(video_mAP, 2))
 
         df_valmap = pd.concat([df_valmap, pd.DataFrame([to_add])], ignore_index=True)
         df_valmap.to_csv(csv_save_path, index=False)
+
+        return to_add['0.3']
 
 
 if __name__ == "__main__":

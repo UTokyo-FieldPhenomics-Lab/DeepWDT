@@ -1,3 +1,21 @@
+yowo_v2_pico:
+  # backbone 2D
+  backbone_2d: yolo_free_pico
+  pretrained_2d: false
+  stride: [8, 16, 32]
+  # backbone 3D
+  backbone_3d: shufflenetv2
+  model_size: "0.25x"
+  pretrained_3d: true
+  memory_momentum: 0.9
+  # head
+  head_dim: 64
+  head_norm: BN
+  head_act: lrelu
+  num_cls_heads: 2
+  num_reg_heads: 2
+  head_depthwise: true
+
 yowo_v2_nano:
   # backbone 2D
   backbone_2d: yolo_free_nano

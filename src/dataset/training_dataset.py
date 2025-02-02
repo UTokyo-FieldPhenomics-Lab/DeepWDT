@@ -44,12 +44,7 @@ class Training_Dataset(Dataset):
             self.file_names = file.readlines()
         self.num_samples  = len(self.file_names)
 
-        if dataset == 'ucf24':
-            self.num_classes = 24
-        elif dataset == 'jhmdb21':
-            self.num_classes = 21
-        elif dataset == 'training_dataset':
-            self.num_classes = 1
+        self.num_classes = 1
 
     def __len__(self):
         return self.num_samples
@@ -193,11 +188,9 @@ class Training_Video_Dataset(Dataset):
         video_split = self.line.split('/')
         video_class = video_split[0]
         video_file = video_split[1]
-        # for windows:
-        # img_split = image_path.split('\\')  # ex. [..., 'Basketball', 'v_Basketball_g08_c01', '00070.txt']
-        # for linux
-        # img_split = image_path.split('/')  # ex. [..., 'Basketball', 'v_Basketball_g08_c01', '00070.txt']
-        img_split = image_path.split('\\')
+        # img_split = image_path.split('\\')
+        img_split = image_path.split('/')
+
         # image name
         img_id = int(img_split[-1][:5])
         max_num = len(os.listdir(self.img_folder))
