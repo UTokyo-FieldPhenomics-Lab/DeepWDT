@@ -2,16 +2,11 @@ import argparse
 import os
 import torch
 
-# from evaluator.ucf_jhmdb_evaluator import UCF_JHMDB_Evaluator
-# from evaluator.ava_evaluator import AVA_Evaluator
-from evaluator.training_dataset_evaluator import TRAINING_DATASET_Evaluator
-
-from dataset.transforms import BaseTransform
-
-from utils.misc import load_weight, CollateFunc
-
 from config import build_dataset_config, build_model_config
+from dataset.transforms import BaseTransform
+from evaluator.training_dataset_evaluator import TRAINING_DATASET_Evaluator
 from models import build_model
+from utils.misc import load_weight, CollateFunc
 
 
 def parse_args():
