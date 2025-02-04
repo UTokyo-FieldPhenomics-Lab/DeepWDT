@@ -8,8 +8,8 @@ import torch
 from scipy.io import loadmat
 from tqdm import tqdm
 
-from src.dataset.training_dataset import Training_Dataset, Training_Video_Dataset
-from src.utils.box_ops import rescale_bboxes
+from dataset.training_dataset import Training_Dataset, Training_Video_Dataset
+from utils.box_ops import rescale_bboxes
 
 from .cal_frame_mAP import evaluate_frameAP
 from .cal_video_mAP import evaluate_videoAP

@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from src.utils.box_ops import *
+from utils.box_ops import *
 
 
 

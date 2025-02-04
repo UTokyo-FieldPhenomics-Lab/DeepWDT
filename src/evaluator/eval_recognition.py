@@ -4,14 +4,14 @@ import torch
 
 # from evaluator.ucf_jhmdb_evaluator import UCF_JHMDB_Evaluator
 # from evaluator.ava_evaluator import AVA_Evaluator
-from src.evaluator.training_dataset_evaluator import TRAINING_DATASET_Evaluator
+from evaluator.training_dataset_evaluator import TRAINING_DATASET_Evaluator
 
-from src.dataset.transforms import BaseTransform
+from dataset.transforms import BaseTransform
 
-from src.utils.misc import load_weight, CollateFunc
+from utils.misc import load_weight, CollateFunc
 
-from src.config import build_dataset_config, build_model_config
-from src.models import build_model
+from config import build_dataset_config, build_model_config
+from models import build_model
 
 
 def parse_args():

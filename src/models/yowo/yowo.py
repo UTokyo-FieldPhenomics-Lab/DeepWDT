@@ -8,7 +8,7 @@ from ..backbone import build_backbone_3d
 from .encoder import build_channel_encoder
 from .head import build_head
 
-from src.utils.nms import multiclass_nms
+from utils.nms import multiclass_nms
 
 
 # You Only Watch Once

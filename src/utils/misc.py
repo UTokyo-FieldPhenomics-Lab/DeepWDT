@@ -3,10 +3,10 @@ import os
 import torch
 import torch.nn as nn
 
-from src.dataset.training_dataset import Training_Dataset
-from src.dataset.transforms import Augmentation, BaseTransform
+from dataset.training_dataset import Training_Dataset
+from dataset.transforms import Augmentation, BaseTransform
 
-from src.evaluator.training_dataset_evaluator import TRAINING_DATASET_Evaluator
+from evaluator.training_dataset_evaluator import TRAINING_DATASET_Evaluator
 
 
 def build_dataset(parameters, is_train=False, eval_split=None):

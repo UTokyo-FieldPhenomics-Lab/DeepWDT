@@ -160,6 +160,7 @@ data/others
 runs/training
 runs/evaluation
 runs/inference
+runs/train
 src/evaluator/training_dataset_evaluation
 
 # PyCharm

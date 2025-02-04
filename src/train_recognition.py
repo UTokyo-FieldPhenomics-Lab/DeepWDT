@@ -15,17 +15,17 @@ import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from src.evaluator.eval_recognition import eval
-from src.dataset.transforms import BaseTransform
-from src.utils import distributed_utils
-from src.utils.com_flops_params import FLOPs_and_Params
-from src.utils.dummy_mlflow import NoOpMLflow
-from src.utils.misc import CollateFunc, build_dataset, build_dataloader
-from src.utils.log import print_log
-from src.utils.solver.optimizer import build_optimizer
-from src.utils.solver.warmup_schedule import get_lr_scheduler, set_optimizer_lr
-from src.config import build_dataset_config, build_model_config
-from src.models import build_model
+from evaluator.eval_recognition import eval
+from dataset.transforms import BaseTransform
+from utils import distributed_utils
+from utils.com_flops_params import FLOPs_and_Params
+from utils.dummy_mlflow import NoOpMLflow
+from utils.misc import CollateFunc, build_dataset, build_dataloader
+from utils.log import print_log
+from utils.solver.optimizer import build_optimizer
+from utils.solver.warmup_schedule import get_lr_scheduler, set_optimizer_lr
+from config import build_dataset_config, build_model_config
+from models import build_model
 
 
 GLOBAL_SEED = 42
