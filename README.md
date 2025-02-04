@@ -27,7 +27,7 @@ python src/dataset/prepare_training_dataset.py -videos
 ```
 The most recent weights are from training on a version of the dataset that was resized to half the original size (224x224 instead of 448x448 as mentioned in our paper).
 
-The training dataset can be dowloaded at:
+The training dataset can be downloaded at:
 
 You can freely add your own annotated videos to the training dataset to enhance the generalizability of the model.
 
