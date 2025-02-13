@@ -64,11 +64,13 @@ class YOWO(nn.Module):
         self.conf_preds = nn.ModuleList(
             [nn.Conv2d(head_dim, 1, kernel_size=1)
                 for _ in range(len(model_architecture['stride']))
-                ]) 
+                ])
+
         self.cls_preds = nn.ModuleList(
             [nn.Conv2d(head_dim, self.num_classes, kernel_size=1)
                 for _ in range(len(model_architecture['stride']))
-                ]) 
+                ])
+
         self.reg_preds = nn.ModuleList(
             [nn.Conv2d(head_dim, 4, kernel_size=1) 
                 for _ in range(len(model_architecture['stride']))

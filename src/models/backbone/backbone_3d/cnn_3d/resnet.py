@@ -10,14 +10,12 @@ __all__ = [
     'resnet152', 'resnet200'
 ]
 
-
 model_urls = {
     "resnet18": "https://github.com/yjh0410/YOWOF/releases/download/yowof-weight/resnet-18-kinetics.pth",
     "resnet34": "https://github.com/yjh0410/YOWOF/releases/download/yowof-weight/resnet-34-kinetics.pth",
     "resnet50": "https://github.com/yjh0410/YOWOF/releases/download/yowof-weight/resnet-50-kinetics.pth",
     "resnet101": "https://github.com/yjh0410/YOWOF/releases/download/yowof-weight/resnet-101-kinetics.pth"
 }
-
 
 
 def conv3x3x3(in_planes, out_planes, stride=1):
@@ -185,20 +183,22 @@ class ResNet(nn.Module):
         c3 = self.layer2(c2)
         c4 = self.layer3(c3)
         c5 = self.layer4(c4)
-        
+
         if c5.size(2) > 1:
             c5 = torch.mean(c5, dim=2, keepdim=True)
-        
+
         return c5.squeeze(2)
 
 
 def load_weight(model, arch):
+    print('Loading pretrained weight ...')
     url = model_urls[arch]
     # check
     if url is None:
         print('No pretrained weight for 3D CNN: {}'.format(arch.upper()))
         return model
 
+    print('Loading 3D backbone pretrained weight: {}'.format(arch.upper()))
     # checkpoint state dict
     checkpoint = load_state_dict_from_url(url=url, map_location="cpu", check_hash=True)
     checkpoint_state_dict = checkpoint.pop('state_dict')
@@ -224,7 +224,7 @@ def load_weight(model, arch):
             # print(k)
 
     model.load_state_dict(new_state_dict)
-        
+
     return model
 
 
@@ -291,6 +291,7 @@ def build_resnet_3d(model_name='resnet18', pretrained=False):
 
 if __name__ == '__main__':
     import time
+
     model, feats = build_resnet_3d(model_name='resnet18', pretrained=True)
     if torch.cuda.is_available():
         device = torch.device("cuda")

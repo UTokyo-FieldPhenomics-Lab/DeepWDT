@@ -31,7 +31,7 @@ FREEZE_BACKBONE_2D: false
 FREEZE_BACKBONE_3D: false
 
 # EVAL
-GROUND_TRUTH: src/evaluator/training_dataset_evaluation/
+GROUND_TRUTH: data/training_dataset/evaluation/
 RECOGNITION:
   FMAP: true
   VMAP: true
@@ -50,7 +50,7 @@ IMAGE_SIZE: 224
 IOU_THRESH: 0.5
 RESUME: false
 GPU: [0,]
-LEN_CLIP: 16
+LEN_CLIP: 2
 MLFLOW: true
 MULTI_HOT: false
 NMS_THRESH: 0.5

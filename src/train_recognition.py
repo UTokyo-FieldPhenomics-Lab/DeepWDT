@@ -11,20 +11,16 @@ from datetime import datetime
 import petname
 import yaml
 import torch
-import torch.backends.cudnn as cudnn
-import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 from evaluator.eval_recognition import eval
 from dataset.transforms import BaseTransform
 from utils import distributed_utils
-from utils.com_flops_params import FLOPs_and_Params
 from utils.dummy_mlflow import NoOpMLflow
 from utils.misc import CollateFunc, build_dataset, build_dataloader
 from utils.log import print_log
 from utils.solver.optimizer import build_optimizer
 from utils.solver.warmup_schedule import get_lr_scheduler, set_optimizer_lr
-from config import build_dataset_config, build_model_config
 from models import build_model
 
 
@@ -76,7 +72,7 @@ def train(parameters, models_architecture, run_name):
             # Model inference
             video_clips = video_clips.to(device)
             outputs = model(video_clips)
-            
+
             # Loss calculation
             loss_dict = criterion(outputs, targets)
             losses = loss_dict['losses']
@@ -91,7 +87,7 @@ def train(parameters, models_architecture, run_name):
             if ni % accumulate == 0:
                 optimizer.step()
                 optimizer.zero_grad()
-                    
+
             # Log
             if distributed_utils.is_main_process() and iter_i % 10 == 0:
                 t1 = time.time()
@@ -102,13 +98,13 @@ def train(parameters, models_architecture, run_name):
                 print_log(cur_lr, epoch,  max_epoch, iter_i, epoch_size, loss_dict_reduced, delta, accumulate)
 
                 # MLflow log
-                mlflow.log_metric('lr', cur_lr[0], step=iter_i)
+                mlflow.log_metric('lr', cur_lr[0], step=ni)
                 for k in loss_dict_reduced.keys():
                     if k == 'losses':
-                        mlflow.log_metric(k, loss_dict_reduced[k]* accumulate, step=iter_i)
+                        mlflow.log_metric(k, loss_dict_reduced[k]* accumulate, step=ni)
                     else:
-                        mlflow.log_metric(k, loss_dict_reduced[k], step=iter_i)
-                mlflow.log_metric('time_in_seconds', delta, step=iter_i)
+                        mlflow.log_metric(k, loss_dict_reduced[k], step=ni)
+                mlflow.log_metric('time_in_seconds', delta, step=ni)
                 t0 = time.time()
 
             # LR scheduler update
@@ -119,8 +115,10 @@ def train(parameters, models_architecture, run_name):
         version = parameters['MODEL_VERSION'].split('_')[-1]
         len_clip = parameters['LEN_CLIP']
         path_to_save = os.path.join(f'runs/train/{run_name}/weights', f'{version}_K{len_clip}')
+
         if not os.path.exists(path_to_save):
             os.makedirs(path_to_save)
+
         weight_name = f'epoch_{epoch+1}.pth'
         checkpoint_path = os.path.join(path_to_save, weight_name)
         torch.save({'model': model_without_ddp.state_dict(),

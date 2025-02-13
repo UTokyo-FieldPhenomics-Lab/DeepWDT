@@ -185,8 +185,8 @@ class Training_Video_Dataset(Dataset):
         video_split = self.line.split('/')
         video_class = video_split[0]
         video_file = video_split[1]
-        # img_split = image_path.split('\\')
-        img_split = image_path.split('/')
+        img_split = image_path.split('\\')
+        # img_split = image_path.split('/')
 
         # image name
         img_id = int(img_split[-1][:5])
