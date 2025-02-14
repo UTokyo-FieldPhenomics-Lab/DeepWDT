@@ -33,10 +33,14 @@ FREEZE_BACKBONE_3D: false
 # EVAL
 GROUND_TRUTH: data/training_dataset/evaluation/
 RECOGNITION:
-  FMAP: true
-  VMAP: true
+  FMAP: false
+  VMAP: false
 TRACKING: true
 EVAL_SPLIT: val
+EVAL:
+  TRACKING:
+    METHOD: DeepSort
+VIS_THRESH: 0.3
 
 # GLOBAL
 MODEL_VERSION: yowo_v2_nano
@@ -44,6 +48,7 @@ BATCH_SIZE:
   TRAIN: 8
   EVAL: 8
 CLASSES: 2
+CLASS_NAME: ['Dancing']
 CONF_THRESH: 0.01
 DEVICE: cpu
 IMAGE_SIZE: 224

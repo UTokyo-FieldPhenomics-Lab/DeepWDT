@@ -6,8 +6,8 @@ from functools import partial
 from sklearn.decomposition import PCA
 from deep_sort_realtime.deepsort_tracker import DeepSort
 
-from src.utils.angles import correct_angle
-from src.utils.vis_tools import trajectory_visualization
+from utils.angles import correct_angle
+from utils.vis_tools import trajectory_visualization
 
 
 def thieve_durations(df, min_duration=55):

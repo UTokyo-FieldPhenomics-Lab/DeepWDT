@@ -19,13 +19,13 @@ from PIL import Image
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.metrics import r2_score
 
-from src.config import build_dataset_config, build_model_config
-from src.dataset.transforms import BaseTransform
-from src.models import build_model
-from src.utils.misc import load_weight
-from src.utils.box_ops import rescale_bboxes
-from src.utils.tracking import thieve_durations, get_angles, track_bees
-from src.utils.vis_tools import vis_detection
+from config import build_dataset_config, build_model_config
+from dataset.transforms import BaseTransform
+from models import build_model
+from utils.misc import load_weight
+from utils.box_ops import rescale_bboxes
+from utils.tracking import thieve_durations, get_angles, track_bees
+from utils.vis_tools import vis_detection
 
 
 def parse_args():
@@ -85,9 +85,9 @@ def parse_args():
                     
 
 @torch.no_grad()
-def detect(len_clip, eval_split, dataset, nms_thresh, vis_thresh, model, device, transform, class_names, class_colors):
+def detect(len_clip, eval_split, dataset, nms_thresh, vis_thresh, model, device, transform, class_names, class_colors, run_name):
 
-    path_evaluation = 'runs/evaluation/tracking'
+    path_evaluation = f'runs/{run_name}/tracking_outputs'
     path_yowov2 = os.path.join(path_evaluation, 'yowov2')
     os.makedirs(path_yowov2, exist_ok=True)
 
@@ -395,6 +395,23 @@ def eval(epoch, len_clip, version, correction_factor):
         fig = create_comparison_plot(true, pred, f'Ground truth vs Predicted {name}s', f'Ground truth {name}s', f'Predicted {name}s')
         fig.write_image(f'runs/evaluation/tracking/{name}s_truevspred.png')
 
+
+def eval_tracking(parameters, model, device, run_name):
+    colors = [(np.random.randint(255),
+                     np.random.randint(255),
+                     np.random.randint(255)) for _ in range(parameters['CLASSES'])]
+
+    detect(len_clip=parameters['LEN_CLIP'],
+           eval_split=parameters['EVAL_SPLIT'],
+           dataset='training_dataset',
+           nms_thresh=parameters['NMS_THRESH'],
+           vis_thresh=parameters['VIS_THRESH'],
+           model=model,
+           device=device,
+           transform=BaseTransform(img_size=parameters['IMAGE_SIZE']),
+           class_names=parameters['CLASS_NAME'],
+           class_colors=colors,
+           run_name=run_name)
 
 if __name__ == '__main__':
     np.random.seed(100)

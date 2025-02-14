@@ -1,8 +1,6 @@
-import argparse
 import cv2
 cv2.setNumThreads(0)
 cv2.ocl.setUseOpenCL(False)
-from copy import deepcopy
 import random
 import os
 import time
@@ -13,7 +11,8 @@ import yaml
 import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from evaluator.eval_recognition import eval
+from evaluator.eval_recognition import eval as eval
+from evaluator.eval_tracking import eval_tracking
 from dataset.transforms import BaseTransform
 from utils import distributed_utils
 from utils.dummy_mlflow import NoOpMLflow
@@ -149,7 +148,7 @@ def train(parameters, models_architecture, run_name):
                 run_name=run_name,
             )
         if parameters['TRACKING']:
-            pass
+            eval_tracking(parameters, model, device, run_name)
         model.train()
         model.trainable = True
         mlflow.log_metric('frame_map_0.5', float(fmap[0]), step=epoch)
@@ -167,7 +166,7 @@ if __name__ == '__main__':
     random_name = petname.Generate(words=2, separator="-")
     random_number = random.randint(1000, 9999)
     run_name = f"{datetime.now().strftime('%y%m%d-%H%M%S')}-{random_name}-{random_number}"
-    run_path = f'runs/train/{run_name}'
+    run_path = f'runs/{run_name}'
     os.makedirs(run_path)
 
     if parameters['MLFLOW']:
