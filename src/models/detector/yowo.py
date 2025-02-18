@@ -11,31 +11,32 @@ from .head import build_head
 from utils.nms import multiclass_nms
 
 
-# You Only Watch Once
 class YOWO(nn.Module):
-    def __init__(self, parameters, model_architecture, trainable=False):
+    def __init__(self, parameters, model_architecture, nb_class, device, trainable):
         super(YOWO, self).__init__()
-        self.device = parameters['DEVICE']
-        self.stride = model_architecture['stride']
-        self.num_classes = parameters['CLASSES']
+
+        self.num_classes = nb_class
         self.trainable = trainable
+        self.device = device
+
+        self.stride = model_architecture['stride']
         self.conf_thresh = parameters['CONF_THRESH']
         self.nms_thresh = parameters['NMS_THRESH']
         self.topk = parameters['TOP_K']
-        self.multi_hot = parameters['MULTI_HOT']
 
         # ------------------ Network ---------------------
-        ## 2D backbone
+
+        # 2D backbone
         self.backbone_2d, bk_dim_2d = build_backbone_2d(
             model_architecture['backbone_2d'],
             pretrained=model_architecture['pretrained_2d'] and trainable)
             
-        ## 3D backbone
+        # 3D backbone
         self.backbone_3d, bk_dim_3d = build_backbone_3d(
             model_architecture['backbone_3d'], model_architecture['model_size'],
             pretrained=model_architecture['pretrained_3d'] and trainable)
 
-        ## cls channel encoder
+        # cls channel encoder
         self.cls_channel_encoders = nn.ModuleList(
             [
                 build_channel_encoder(model_architecture['head_act'],
@@ -45,7 +46,7 @@ class YOWO(nn.Module):
              for i in range(len(model_architecture['stride']))
             ])
             
-        ## reg channel & spatial encoder
+        # reg channel & spatial encoder
         self.reg_channel_encoders = nn.ModuleList(
             [build_channel_encoder(model_architecture['head_act'],
                                    model_architecture['head_norm'],
@@ -54,12 +55,12 @@ class YOWO(nn.Module):
                 for i in range(len(model_architecture['stride']))
              ])
 
-        ## head
+        # head
         self.heads = nn.ModuleList(
             [build_head(model_architecture) for _ in range(len(model_architecture['stride']))]
         ) 
 
-        ## pred
+        # pred
         head_dim = model_architecture['head_dim']
         self.conf_preds = nn.ModuleList(
             [nn.Conv2d(head_dim, 1, kernel_size=1)
@@ -76,7 +77,6 @@ class YOWO(nn.Module):
                 for _ in range(len(model_architecture['stride']))
                 ])                 
 
-        # init yowo
         self.init_yowo()
 
 
@@ -426,3 +426,26 @@ class YOWO(nn.Module):
                        "strides": self.stride}            # List(Int)
 
             return outputs
+
+
+# Build YOWO
+def build_model(parameters, model_architecture, nb_class, device, trainable):
+
+    model = YOWO(parameters, model_architecture, nb_class, device, trainable)
+
+    # Freeze backbone
+    if trainable:
+        if parameters['FREEZE_BACKBONE']['2D']:
+            for m in model.backbone_2d.parameters():
+                m.requires_grad = False
+
+        if parameters['FREEZE_BACKBONE']['3D']:
+            for m in model.backbone_3d.parameters():
+                m.requires_grad = False
+
+        if parameters['RESUME']:
+            checkpoint = torch.load(parameters['RESUME'], map_location='cpu')
+            checkpoint_state_dict = checkpoint.pop("model")
+            model.load_state_dict(checkpoint_state_dict)
+
+    return model

@@ -24,6 +24,7 @@ def build_optimizer(solver, model, base_lr=0.0, resume=None):
             weight_decay=solver['WEIGHT_DECAY'])
           
     start_epoch = 0
+
     if resume:
         print('keep training: ', resume)
         checkpoint = torch.load(resume)

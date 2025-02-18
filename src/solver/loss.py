@@ -34,14 +34,13 @@ class SigmoidFocalLoss(object):
 
 
 class Criterion(object):
-    def __init__(self, parameters, img_size, num_classes=80, multi_hot=False):
-        self.num_classes = num_classes
+    def __init__(self, parameters, img_size, num_class, center_sampling_radius, topk):
+        self.num_classes = num_class
         self.img_size = img_size
-        self.loss_conf_weight = parameters['LOSS_CONF_WEIGHT']
-        self.loss_cls_weight = parameters['LOSS_CLS_WEIGHT']
-        self.loss_reg_weight = parameters['LOSS_REG_WEIGHT']
-        self.focal_loss = parameters['FOCAL_LOSS']
-        self.multi_hot = multi_hot
+        self.loss_conf_weight = parameters['LOSS']['CONF_WEIGHT']
+        self.loss_cls_weight = parameters['LOSS']['CLS_WEIGHT']
+        self.loss_reg_weight = parameters['LOSS']['REG_WEIGHT']
+        self.focal_loss = parameters['LOSS']['FOCAL_LOSS']
 
         # loss
         self.obj_lossf = nn.BCEWithLogitsLoss(reduction='none')
@@ -49,9 +48,9 @@ class Criterion(object):
             
         # matcher
         self.matcher = SimOTA(
-            num_classes=num_classes,
-            center_sampling_radius=parameters['CENTER_SAMPLING_RADIUS'],
-            topk_candidate=parameters['TOP_K']
+            num_classes=num_class,
+            center_sampling_radius=center_sampling_radius,
+            topk_candidate=topk
             )
 
     def __call__(self, outputs, targets):        
@@ -113,10 +112,7 @@ class Criterion(object):
 
                 conf_target = fg_mask.unsqueeze(-1)
                 box_target = tgt_bboxes[matched_gt_inds]
-                if self.multi_hot:
-                    cls_target = gt_matched_classes.float()
-                else:
-                    cls_target = F.one_hot(gt_matched_classes.long(), self.num_classes)
+                cls_target = F.one_hot(gt_matched_classes.long(), self.num_classes)
                 cls_target = cls_target * pred_ious_this_matching.unsqueeze(-1)
 
             cls_targets.append(cls_target)
@@ -166,8 +162,9 @@ class Criterion(object):
         return loss_dict
 
 
-def build_criterion(parameters, img_size, num_classes, multi_hot=False):
-    criterion = Criterion(parameters, img_size, num_classes, multi_hot)
+def build_loss(parameters, img_size, num_class, center_sampling_radius, topk):
+
+    criterion = Criterion(parameters, img_size, num_class, center_sampling_radius, topk)
     
     return criterion
     

@@ -143,7 +143,7 @@ def eval_folder(args):
 def test_folder(args):
     vallist_path = os.path.join(args.dataset, 'testlist.txt')
     dest_dir = os.path.join('./src/evaluator',
-                            'training_dataset_evaluation', 'test')
+                            'evaluation', 'test')
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
 

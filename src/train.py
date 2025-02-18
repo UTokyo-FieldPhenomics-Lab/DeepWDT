@@ -1,69 +1,86 @@
 import cv2
-cv2.setNumThreads(0)
-cv2.ocl.setUseOpenCL(False)
-import random
 import os
+import random
 import time
 from datetime import datetime
 
 import petname
 import yaml
 import torch
-from torch.nn.parallel import DistributedDataParallel as DDP
+# from evaluator.eval_recognition import eval as eval
+# from evaluator.eval_tracking import eval_tracking
 
-from evaluator.eval_recognition import eval as eval
-from evaluator.eval_tracking import eval_tracking
-from dataset.transforms import BaseTransform
+from dataset import build_2d_dataset, CollateFunction
+from models import build_model
+from preprocessing import Augmentation
+from solver import build_loss, build_optimizer, get_lr_scheduler, set_optimizer_lr
 from utils import distributed_utils
 from utils.dummy_mlflow import NoOpMLflow
-from utils.misc import CollateFunc, build_dataset, build_dataloader
 from utils.log import print_log
-from utils.solver.optimizer import build_optimizer
-from utils.solver.warmup_schedule import get_lr_scheduler, set_optimizer_lr
-from models import build_model
-
-
-GLOBAL_SEED = 42
 
 
 def train(parameters, models_architecture, run_name):
     global_path = (os.getcwd())
+
     print("Arguments: ", parameters)
-    print('Training...')
+    print('-----------------------------------------------------------------------------------------------------------')
 
-    # Create dataloader
-    dataset, _, num_classes = build_dataset(parameters, is_train=True)
-    dataloader = build_dataloader(parameters, dataset, CollateFunc(), is_train=True)
+    # Instantiate the training dataset and dataloader
+    print('Loading the dataset...')
+    training_transform = Augmentation(
+        img_size   = parameters['TRAIN']['DATASET']['IMAGE_SIZE'],
+        jitter     = parameters['TRAIN']['AUGMENTATION']['JITTER'],
+        hue        = parameters['TRAIN']['AUGMENTATION']['HUE'],
+        saturation = parameters['TRAIN']['AUGMENTATION']['SATURATION'],
+        exposure   = parameters['TRAIN']['AUGMENTATION']['EXPOSURE']
+    )
 
-    # Create model and criterion
-    model, criterion = build_model(parameters, models_architecture[parameters['MODEL_VERSION']], trainable=True)
-    device = torch.device(parameters['DEVICE'])
+    training_dataset = build_2d_dataset(parameters = parameters['TRAIN']['DATASET'],
+                                     transform = training_transform,
+                                     split = 'train')
+
+    dataloader = torch.utils.data.DataLoader(
+        dataset     = training_dataset,
+        collate_fn  = CollateFunction(),
+        num_workers = parameters['TRAIN']['NUM_WORKERS'],
+        batch_size  = parameters['TRAIN']['BATCH_SIZE'],
+        shuffle     = True,
+    )
+    print('Dataset loaded!')
+
+    # Instantiate the model
+    print('Building the model...')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    model = build_model(parameters         = parameters['MODEL'],
+                        model_architecture = models_architecture[parameters['MODEL']['VERSION']],
+                        nb_class           = len(parameters['TRAIN']['DATASET']['CLASS'])+1,
+                        device             = device,
+                        trainable          = True)
     model = model.to(device).train()
-
-    # Set up distribution over GPUs
-    model_without_ddp = model
-    if parameters['DISTRIBUTION']['DISTRIBUTED']:
-        model = DDP(model, device_ids=[parameters['GPU']])
-        model_without_ddp = model.module
-    if parameters['DISTRIBUTION']['SYBN'] and parameters['DISTRIBUTION']['DISTRIBUTED']:
-        print('use SyncBatchNorm ...')
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
+    print('Model built!')
 
     # Optimizer & warmup scheduler
-    base_lr = parameters['SOLVER']['BASE_LR']
-    min_lr_ratio = parameters['SOLVER']['MIN_LR_RATIO']
-    warmup_epoch = parameters['SOLVER']['WARMUP_EPOCH']
-    no_decrease_lr_epoch = parameters['SOLVER']['NO_DECREASE_LR_EPOCH']
-    accumulate = parameters['SOLVER']['ACCUMULATE']
-    optimizer, start_epoch = build_optimizer(parameters['SOLVER'], model_without_ddp, 0, parameters['RESUME'])
+    print('Building the optimizer...')
+    criterion = build_loss(parameters = parameters['TRAIN']['SOLVER'],
+                           img_size   = parameters['TRAIN']['DATASET']['IMAGE_SIZE'],
+                           num_class  = len(parameters['TRAIN']['DATASET']['CLASS'])+1,
+                           center_sampling_radius = parameters['MODEL']['CENTER_SAMPLING_RADIUS'],
+                           topk = parameters['MODEL']['TOP_K'])
+    base_lr = parameters['TRAIN']['SOLVER']['BASE_LR']
+    min_lr_ratio = parameters['TRAIN']['SOLVER']['MIN_LR_RATIO']
+    warmup_epoch = parameters['TRAIN']['SOLVER']['WARMUP_EPOCH']
+    no_decrease_lr_epoch = parameters['TRAIN']['SOLVER']['NO_DECREASE_LR_EPOCH']
+    accumulate = parameters['TRAIN']['SOLVER']['ACCUMULATE']
+    optimizer, start_epoch = build_optimizer(parameters['TRAIN']['SOLVER'], model, 0,)
+    print('Optimizer built!')
 
+    print('Training...')
     # Training loop
-    max_epoch = parameters['MAX_EPOCH']
+    max_epoch = parameters['TRAIN']['MAX_EPOCH']
     epoch_size = len(dataloader)
     for epoch in range(start_epoch, max_epoch):
         t0 = time.time()
-        if parameters['DISTRIBUTION']['DISTRIBUTED']:
-            dataloader.batch_sampler.sampler.set_epoch(epoch)            
 
         for iter_i, (frame_ids, video_clips, targets) in enumerate(dataloader):
             ni = iter_i + epoch * epoch_size
@@ -77,7 +94,7 @@ def train(parameters, models_architecture, run_name):
             losses = loss_dict['losses']
             loss_dict_reduced = distributed_utils.reduce_dict(loss_dict)
             if torch.isnan(losses):
-                print('loss is NAN !!')
+                print('The loss is NAN, continue.')
                 continue
 
             # Optimize
@@ -88,7 +105,7 @@ def train(parameters, models_architecture, run_name):
                 optimizer.zero_grad()
 
             # Log
-            if distributed_utils.is_main_process() and iter_i % 10 == 0:
+            if iter_i % 10 == 0:
                 t1 = time.time()
                 delta = t1-t0
 
@@ -120,40 +137,48 @@ def train(parameters, models_architecture, run_name):
 
         weight_name = f'epoch_{epoch+1}.pth'
         checkpoint_path = os.path.join(path_to_save, weight_name)
-        torch.save({'model': model_without_ddp.state_dict(),
-                            'epoch': epoch,
-                            'args': parameters},
-                            checkpoint_path)
+        torch.save({'model': model.state_dict(),
+                    'epoch': epoch,
+                    'args': parameters},
+                   checkpoint_path)
 
         # Evaluate the model
         model.eval()
         model.trainable = False
-        if parameters['RECOGNITION']['FMAP']:
-            fmap = eval(
-                parameters=parameters,
-                model=model,
-                transform=BaseTransform(img_size=parameters['IMAGE_SIZE']),
-                collate_fn=CollateFunc(),
-                metric='fmap',
-                run_name=run_name,
-            )
-        os.chdir(global_path)
-        if parameters['RECOGNITION']['VMAP']:
-            vmap = eval(
-                parameters=parameters,
-                model=model,
-                transform=BaseTransform(img_size=parameters['IMAGE_SIZE']),
-                collate_fn=CollateFunc(),
-                metric='vmap',
-                run_name=run_name,
-            )
-        if parameters['TRACKING']:
-            eval_tracking(parameters, model, device, run_name)
+
+        # if parameters['RECOGNITION']['FMAP']:
+        #     fmap = eval(
+        #         parameters=parameters,
+        #         model=model,
+        #         transform=BaseTransform(img_size=parameters['IMAGE_SIZE']),
+        #         collate_fn=CollateFunc(),
+        #         metric='fmap',
+        #         run_name=run_name,
+        #     )
+        #     mlflow.log_metric('frame_map_0.5', float(fmap[0]), step=epoch)
+        # os.chdir(global_path)
+        #
+        # if parameters['RECOGNITION']['VMAP']:
+        #     vmap = eval(
+        #         parameters=parameters,
+        #         model=model,
+        #         transform=BaseTransform(img_size=parameters['IMAGE_SIZE']),
+        #         collate_fn=CollateFunc(),
+        #         metric='vmap',
+        #         run_name=run_name,
+        #     )
+        #     mlflow.log_metric('video_map_0.3', float(vmap), step=epoch)
+
+        # if parameters['TRACKING']:
+        #
+        #     checkpoint_path = 'epoch_20.pth'
+        #     state_dict = torch.load(checkpoint_path)
+        #     model.load_state_dict(state_dict)
+        #
+        #     eval_tracking(parameters, model, device, run_name)
+
         model.train()
         model.trainable = True
-        mlflow.log_metric('frame_map_0.5', float(fmap[0]), step=epoch)
-        mlflow.log_metric('video_map_0.3', float(vmap), step=epoch)
-
 
 
 if __name__ == '__main__':
@@ -169,7 +194,7 @@ if __name__ == '__main__':
     run_path = f'runs/{run_name}'
     os.makedirs(run_path)
 
-    if parameters['MLFLOW']:
+    if parameters['TRAIN']['MLFLOW']:
         import mlflow.pytorch
         mlflow.set_experiment('Deep Waggle Dance Translation')
     else:

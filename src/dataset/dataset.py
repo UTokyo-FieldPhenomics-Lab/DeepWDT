@@ -9,50 +9,42 @@ from PIL import Image
 
 
 # Training Dataset
-class Training_Dataset(Dataset):
-    def __init__(self,
-                 data_root,
-                 dataset='training_dataset',
-                 img_size=448,
-                 transform=None,
-                 is_train=False,
-                 len_clip=16,
-                 sampling_rate=1,
-                 eval_split=None):
-        self.data_root = data_root
-        self.dataset = dataset
+class DATASET2D(Dataset):
+    def __init__(self, dataset_name, img_size, len_clip, transform, split, centered_clip):
+        self.path = dataset_name
+        self.data_root = os.path.join('data', self.path)
+        self.num_classes = 2
+
         self.transform = transform
-        self.is_train = is_train
+
+        self.split = split
+        if self.split == 'train':
+            self.split_list = 'trainlist.txt'
+        elif self.split == 'val':
+            self.split_list = 'vallist.txt'
+        elif self.split == 'test':
+            self.split_list = 'testlist.txt'
         
         self.img_size = img_size
         self.len_clip = len_clip
-        self.sampling_rate = sampling_rate
-            
-        if self.is_train:
-            self.split_list = 'trainlist.txt'
-        else:
-            if eval_split == 'test':
-                self.split_list = 'testlist.txt'
-            else:
-                self.split_list = 'vallist.txt'
+        self.centered_clip = centered_clip
 
-        # load data
-        with open(os.path.join(data_root, self.split_list), 'r') as file:
+        # Load data
+        with open(os.path.join(self.data_root, self.split_list), 'r') as file:
             self.file_names = file.readlines()
         self.num_samples  = len(self.file_names)
-
-        self.num_classes = 1
 
     def __len__(self):
         return self.num_samples
 
-
     def __getitem__(self, index):
-        # load a data
-        frame_idx, video_clip, target = self.pull_item(index)
+        if self.centered_clip:
+            print('sfjidsisdfis')
+            frame_idx, video_clip, target = self.pull_item_centered(index)
+        else:
+            frame_idx, video_clip, target = self.pull_item(index)
 
         return frame_idx, video_clip, target
-
 
     def pull_item(self, index):
         """ load a data """
@@ -60,29 +52,20 @@ class Training_Dataset(Dataset):
         image_path = self.file_names[index].rstrip()
 
         img_split = image_path.split('/')  # ex. ['labels', 'Basketball', 'v_Basketball_g08_c01', '00070.txt']
-        # image name
+
         img_id = int(img_split[-1][:5])
 
-        # path to label
         label_path = os.path.join(self.data_root, img_split[0], img_split[1], img_split[2], '{:05d}.txt'.format(img_id))
 
-        # image folder
         img_folder = os.path.join(self.data_root, 'rgb-images', img_split[1], img_split[2])
 
-        # frame numbers
         max_num = len(os.listdir(img_folder))
-
-        # sampling rate
-        if self.is_train:
-            d = random.randint(1, 2)
-        else:
-            d = self.sampling_rate
 
         # load images
         video_clip = []
         for i in reversed(range(self.len_clip)):
             # make it as a loop
-            img_id_temp = img_id - i * d
+            img_id_temp = img_id - i
             if img_id_temp < 1:
                 img_id_temp = 1
             elif img_id_temp > max_num:
@@ -110,6 +93,7 @@ class Training_Dataset(Dataset):
             
         # transform
         video_clip, target = self.transform(video_clip, target)
+
         # List [T, 3, H, W] -> [3, T, H, W]
         video_clip = torch.stack(video_clip, dim=1)
 
@@ -123,6 +107,81 @@ class Training_Dataset(Dataset):
 
         return frame_id, video_clip, target
 
+    def pull_item_centered(self, index):
+        """ load a data """
+        assert index <= len(self), 'index range error'
+
+        image_path = self.file_names[index].rstrip()
+        img_split = image_path.split('/')  # ex. ['labels', 'Basketball', 'v_Basketball_g08_c01', '00070.txt']
+
+        img_id = int(img_split[-1][:5])
+
+        label_path = os.path.join(self.data_root,
+                                  img_split[0],
+                                  img_split[1],
+                                  img_split[2],
+                                  '{:05d}.txt'.format(img_id))
+
+        img_folder = os.path.join(self.data_root,
+                                  'rgb-images',
+                                  img_split[1],
+                                  img_split[2])
+
+        max_num = len(os.listdir(img_folder))
+
+        # load images
+        video_clip = []
+        half_len_clip = int(self.len_clip / 2)
+        for offset in range(-half_len_clip, half_len_clip):
+
+            img_id_temp = img_id + offset
+
+            if img_id_temp < 1:
+                img_id_temp = 1
+            elif img_id_temp > max_num:
+                img_id_temp = max_num
+
+            # load a frame
+            path_tmp = os.path.join(self.data_root,
+                                    'rgb-images',
+                                    img_split[1],
+                                    img_split[2]
+                                    , '{:05d}.jpg'.format(img_id_temp)
+                                    )
+
+            frame = Image.open(path_tmp).convert('RGB')
+            ow, oh = frame.width, frame.height
+
+            video_clip.append(frame)
+
+        frame_id = img_split[1] + '_' + img_split[2] + '_' + img_split[3]
+
+        # Load an annotation
+        if os.path.getsize(label_path):
+            target = np.loadtxt(label_path)
+        else:
+            target = None
+
+        # [label, x1, y1, x2, y2] -> [x1, y1, x2, y2, label]
+        label = target[..., :1]
+        boxes = target[..., 1:]
+        target = np.concatenate([boxes, label], axis=-1).reshape(-1, 5)
+
+        # transform
+        video_clip, target = self.transform(video_clip, target)
+
+        # List [T, 3, H, W] -> [3, T, H, W]
+        video_clip = torch.stack(video_clip, dim=1)
+
+        # reformat target
+        target = {
+            'boxes': target[:, :4].float(),  # [N, 4]
+            'labels': target[:, -1].long() - 1,  # [N,]
+            'orig_size': [ow, oh],
+            'video_idx': frame_id[:-10]
+        }
+
+        return frame_id, video_clip, target
 
     def pull_anno(self, index):
         """ load a data """
@@ -144,7 +203,7 @@ class Training_Dataset(Dataset):
         
 
 # Training Video Dataset
-class Training_Video_Dataset(Dataset):
+class DATASET3D(Dataset):
     def __init__(self,
                  data_root,
                  dataset='training_dataset',
@@ -221,67 +280,14 @@ class Training_Video_Dataset(Dataset):
         return img_name, video_clip, target
 
 
+def build_2d_dataset(parameters, transform, split,):
 
+    return DATASET2D(dataset_name = parameters['NAME'],
+                     img_size = parameters['IMAGE_SIZE'],
+                     len_clip = parameters['LEN_CLIP'],
+                     transform = transform,
+                     split = split,
+                     centered_clip = parameters['CENTERED_CLIP'])
 
-if __name__ == '__main__':
-    import cv2
-    from transforms import Augmentation, BaseTransform
-
-    data_root = 'D:/python_work/spatial-temporal_action_detection/dataset/ucf24'
-    dataset = 'ucf24'
-    is_train = True
-    img_size = 224
-    len_clip = 16
-    trans_config = {
-        'jitter': 0.2,
-        'hue': 0.1,
-        'saturation': 1.5,
-        'exposure': 1.5
-    }
-    train_transform = Augmentation(
-        img_size=img_size,
-        jitter=trans_config['jitter'],
-        saturation=trans_config['saturation'],
-        exposure=trans_config['exposure']
-        )
-    val_transform = BaseTransform(img_size=img_size)
-
-    train_dataset = UCF_JHMDB_Dataset(
-        data_root=data_root,
-        dataset=dataset,
-        img_size=img_size,
-        transform=train_transform,
-        is_train=is_train,
-        len_clip=len_clip,
-        sampling_rate=1
-    )
-
-    print(len(train_dataset))
-    for i in range(len(train_dataset)):
-        frame_id, video_clip, target = train_dataset[i]
-        key_frame = video_clip[:, -1, :, :]
-
-        # to numpy
-        key_frame = key_frame.permute(1, 2, 0).numpy()
-        key_frame = key_frame.astype(np.uint8)
-
-        # to BGR
-        key_frame = key_frame[..., (2, 1, 0)]
-        H, W, C = key_frame.shape
-
-        key_frame = key_frame.copy()
-        bboxes = target['boxes']
-        labels = target['labels']
-
-        for box, cls_id in zip(bboxes, labels):
-            x1, y1, x2, y2 = box
-            x1 = int(x1 * W)
-            y1 = int(y1 * H)
-            x2 = int(x2 * W)
-            y2 = int(y2 * H)
-            key_frame = cv2.rectangle(key_frame, (x1, y1), (x2, y2), (255, 0, 0))
-
-        # cv2 show
-        cv2.imshow('key frame', key_frame)
-        cv2.waitKey(0)
-        
+def build_3d_dataset(parameters):
+    pass
