@@ -39,7 +39,6 @@ class DATASET2D(Dataset):
 
     def __getitem__(self, index):
         if self.centered_clip:
-            print('sfjidsisdfis')
             frame_idx, video_clip, target = self.pull_item_centered(index)
         else:
             frame_idx, video_clip, target = self.pull_item(index)

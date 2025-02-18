@@ -16,15 +16,13 @@ TRAIN:
     HUE: 0.1
     JITTER: 0.2
     SATURATION: 1.5
-  BATCH_SIZE: 8
+  BATCH_SIZE: 32
   DATASET:
     NAME: training_dataset
     CLASS: ['Dancing']
     IMAGE_SIZE: 224
     LEN_CLIP: 3
-    CENTERED_CLIP: false
-  DEVICE: gpu
-  GPU: [0,]
+    CENTERED_CLIP: true
   MAX_EPOCH: 10
   MLFLOW: true
   SOLVER:

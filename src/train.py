@@ -51,6 +51,7 @@ def train(parameters, models_architecture, run_name):
     # Instantiate the model
     print('Building the model...')
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f'Using {device}')
 
     model = build_model(parameters         = parameters['MODEL'],
                         model_architecture = models_architecture[parameters['MODEL']['VERSION']],
@@ -128,8 +129,8 @@ def train(parameters, models_architecture, run_name):
             set_optimizer_lr(optimizer, lr_scheduler_func, ni)
 
         # Save the model
-        version = parameters['MODEL_VERSION'].split('_')[-1]
-        len_clip = parameters['LEN_CLIP']
+        version = parameters['MODEL']['MODEL']['VERSION'].split('_')[-1]
+        len_clip = parameters['DATASET']['LEN_CLIP']
         path_to_save = os.path.join(f'runs/train/{run_name}/weights', f'{version}_K{len_clip}')
 
         if not os.path.exists(path_to_save):
