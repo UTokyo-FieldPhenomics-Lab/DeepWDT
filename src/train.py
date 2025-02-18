@@ -129,7 +129,7 @@ def train(parameters, models_architecture, run_name):
             set_optimizer_lr(optimizer, lr_scheduler_func, ni)
 
         # Save the model
-        version = parameters['MODEL']['MODEL']['VERSION'].split('_')[-1]
+        version = parameters['MODEL']['VERSION'].split('_')[-1]
         len_clip = parameters['DATASET']['LEN_CLIP']
         path_to_save = os.path.join(f'runs/train/{run_name}/weights', f'{version}_K{len_clip}')
 
