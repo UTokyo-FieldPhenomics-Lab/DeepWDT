@@ -1,4 +1,4 @@
-import cv2
+import argparse
 import os
 import random
 import time
@@ -7,16 +7,25 @@ from datetime import datetime
 import petname
 import yaml
 import torch
-# from evaluator.eval_recognition import eval as eval
+from evaluator.eval_recognition import evaluate_frame_map
 # from evaluator.eval_tracking import eval_tracking
 
-from dataset import build_2d_dataset, CollateFunction
-from models import build_model
-from preprocessing import Augmentation
+from dataset import build_2d_dataset, build_3d_dataset, CollateFunction
+from models import build_yowo_model
+from preprocessing import Augmentation, BaseTransform
 from solver import build_loss, build_optimizer, get_lr_scheduler, set_optimizer_lr
 from utils import distributed_utils
 from utils.dummy_mlflow import NoOpMLflow
 from utils.log import print_log
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Waggle Dance Translation')
+
+    parser.add_argument('--training_config', default='src/config/parameters.yaml',
+                        type=str, help='Path to the training config yaml file.')
+
+    return parser.parse_args()
 
 
 def train(parameters, models_architecture, run_name):
@@ -26,7 +35,7 @@ def train(parameters, models_architecture, run_name):
     print('-----------------------------------------------------------------------------------------------------------')
 
     # Instantiate the training dataset and dataloader
-    print('Loading the dataset...')
+    print('Loading the training dataset...')
     training_transform = Augmentation(
         img_size   = parameters['TRAIN']['DATASET']['IMAGE_SIZE'],
         jitter     = parameters['TRAIN']['AUGMENTATION']['JITTER'],
@@ -35,28 +44,66 @@ def train(parameters, models_architecture, run_name):
         exposure   = parameters['TRAIN']['AUGMENTATION']['EXPOSURE']
     )
 
-    training_dataset = build_2d_dataset(parameters = parameters['TRAIN']['DATASET'],
-                                     transform = training_transform,
-                                     split = 'train')
+    training_dataset = build_2d_dataset(
+        parameters = parameters['TRAIN']['DATASET'],
+        transform = training_transform,
+        split = 'train'
+    )
 
-    dataloader = torch.utils.data.DataLoader(
+    training_dataloader = torch.utils.data.DataLoader(
         dataset     = training_dataset,
         collate_fn  = CollateFunction(),
         num_workers = parameters['TRAIN']['NUM_WORKERS'],
         batch_size  = parameters['TRAIN']['BATCH_SIZE'],
         shuffle     = True,
     )
-    print('Dataset loaded!')
+    print('Training dataset loaded!')
+
+    # Instantiate the validation dataset and dataloader
+    print('Loading the validation dataset...')
+    validation_2d_dataset = build_2d_dataset(
+        parameters = parameters['TRAIN']['DATASET'],
+        transform = BaseTransform(img_size=parameters['TRAIN']['DATASET']['IMAGE_SIZE']),
+        split = 'val'
+    )
+
+    evaluation_2d_dataloader = torch.utils.data.DataLoader(
+        dataset=validation_2d_dataset,
+        batch_size=parameters['EVAL']['BATCH_SIZE'],
+        collate_fn=CollateFunction(),
+        num_workers=parameters['EVAL']['NUM_W]]ORKERS'],
+        shuffle=False,
+        drop_last=False,
+        pin_memory=True,
+    )
+
+    validation_3d_dataset = build_3d_dataset(
+        parameters=parameters['TRAIN']['DATASET'],
+        transform=BaseTransform(img_size=parameters['TRAIN']['DATASET']['IMAGE_SIZE']),
+        split='val'
+    )
+
+    evaluation_3d_dataloader = torch.utils.data.DataLoader(
+        dataset=validation_2d_dataset,
+        batch_size=parameters['EVAL']['BATCH_SIZE'],
+        collate_fn=CollateFunction(),
+        num_workers=parameters['EVAL']['NUM_W]]ORKERS'],
+        shuffle=False,
+        drop_last=False,
+        pin_memory=True,
+    )
+
+    print('Validation dataset loaded!')
 
     # Instantiate the model
     print('Building the model...')
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    model = build_model(parameters         = parameters['MODEL'],
-                        model_architecture = models_architecture[parameters['MODEL']['VERSION']],
-                        nb_class           = len(parameters['TRAIN']['DATASET']['CLASS'])+1,
-                        device             = device,
-                        trainable          = True)
+    model = build_yowo_model(
+        parameters         = parameters['MODEL'],
+        model_architecture = models_architecture[parameters['MODEL']['VERSION']],
+        nb_class           = len(parameters['TRAIN']['DATASET']['CLASS'])+1,
+        device             = device,
+        trainable          = True)
     model = model.to(device).train()
     print('Model built!')
 
@@ -78,11 +125,11 @@ def train(parameters, models_architecture, run_name):
     print('Training...')
     # Training loop
     max_epoch = parameters['TRAIN']['MAX_EPOCH']
-    epoch_size = len(dataloader)
+    epoch_size = len(training_dataloader)
     for epoch in range(start_epoch, max_epoch):
         t0 = time.time()
 
-        for iter_i, (frame_ids, video_clips, targets) in enumerate(dataloader):
+        for iter_i, (frame_ids, video_clips, targets) in enumerate(training_dataloader):
             ni = iter_i + epoch * epoch_size
 
             # Model inference
@@ -128,8 +175,8 @@ def train(parameters, models_architecture, run_name):
             set_optimizer_lr(optimizer, lr_scheduler_func, ni)
 
         # Save the model
-        version = parameters['MODEL_VERSION'].split('_')[-1]
-        len_clip = parameters['LEN_CLIP']
+        version = parameters['MODEL']['VERSION'].split('_')[-1]
+        len_clip = parameters['TRAIN']['DATASET']
         path_to_save = os.path.join(f'runs/train/{run_name}/weights', f'{version}_K{len_clip}')
 
         if not os.path.exists(path_to_save):
@@ -146,18 +193,19 @@ def train(parameters, models_architecture, run_name):
         model.eval()
         model.trainable = False
 
-        # if parameters['RECOGNITION']['FMAP']:
-        #     fmap = eval(
-        #         parameters=parameters,
-        #         model=model,
-        #         transform=BaseTransform(img_size=parameters['IMAGE_SIZE']),
-        #         collate_fn=CollateFunc(),
-        #         metric='fmap',
-        #         run_name=run_name,
-        #     )
-        #     mlflow.log_metric('frame_map_0.5', float(fmap[0]), step=epoch)
-        # os.chdir(global_path)
-        #
+        if parameters['EVAL']['RECOGNITION']['FMAP']:
+            fmap = evaluate_frame_map(
+                model,
+                evaluation_2d_dataloader,
+                run_name,
+                epoch,
+                model_name=parameters['MODEL']['VERSION'],
+                len_clip=parameters['TRAIN']['DATASET'],
+                split='val',
+                iou_thresh=parameters['EVAL']['IOU_THRESH'],
+            )
+            mlflow.log_metric('frame_map_0.5', float(fmap[0]), step=epoch)
+
         # if parameters['RECOGNITION']['VMAP']:
         #     vmap = eval(
         #         parameters=parameters,
@@ -182,10 +230,14 @@ def train(parameters, models_architecture, run_name):
 
 
 if __name__ == '__main__':
-    with open("src/config/parameters.yaml") as f:
+    args = parse_args()
+
+    path_training_config = args.training_config
+    with open(path_training_config) as f:
         parameters = yaml.safe_load(f)
 
-    with open("src/config/models.yaml") as f:
+    path_model_config = "src/config/models.yaml"
+    with open(path_model_config) as f:
         models_architecture = yaml.safe_load(f)
 
     random_name = petname.Generate(words=2, separator="-")
@@ -201,7 +253,7 @@ if __name__ == '__main__':
         mlflow = NoOpMLflow(run_name)
 
     with mlflow.start_run(run_name=run_name) as run:
-        mlflow.log_artifact("src/config/parameters.yaml")
-        mlflow.log_artifact("src/config/models.yaml")
+        mlflow.log_artifact(path_training_config)
+        mlflow.log_artifact(path_model_config)
 
         train(parameters, models_architecture, run_name)

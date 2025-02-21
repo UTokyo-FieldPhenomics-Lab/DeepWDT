@@ -6,12 +6,17 @@ This repository is the official implementation of DeepWDT (Deep Waggle Dance Tra
 
 We recommend you to use Anaconda to create a conda environment:
 ```Shell
-conda create -n deepwdt python=3.9
+conda create -n deepwdt python=3.10
 ```
 
 Then, activate the environment:
 ```Shell
 conda activate deepwdt
+```
+
+Then, set up your working environment ot our repository:
+```Shell
+cd path_to_DeepWDT
 ```
 
 Then install requirements:
@@ -21,80 +26,63 @@ pip install -r requirements.txt
 
 ## <div align="center">Dataset preparation</div>
 
+### Prepare our dataset
+
 To prepare our training set, copy the 'videos' folder and 'annotations.txt' into 'data/training_dataset' and launch the following command line:
 ```Shell
-python src/dataset/prepare_training_dataset.py -videos 
+python src/dataset/unpack.py 
 ```
-The most recent weights are from training on a version of the dataset that was resized to half the original size (224x224 instead of 448x448 as mentioned in our paper).
 
-The training dataset can be downloaded at:
+The training dataset can be downloaded at *link coming soon*.  
 
-You can freely add your own annotated videos to the training dataset to enhance the generalizability of the model.
+Feel free to augment the dataset with your own data to improve the model's generalizability.
 
-## <div align="center">Dance Recognition Training and Validation</div>
+### Data collection advices
 
-For the detection of the dancing individuals, we adapted the original YOWOv2 network that can be found here : https://github.com/yjh0410/YOWOv2.
+*Coming soon.*
+
+## <div align="center">Training and Validation</div>
+
+We built our system from the original YOWOv2 network that can be found here : https://github.com/yjh0410/YOWOv2.
 
 ### Training
-To retrain the network on the training dataset, you can use the following command line (example for K=8):
+To retrain the network on the training dataset, you can use the following command line:
 
 ```Shell
-python -m src.training.train_recognition --version yowo_v2_nano --max_epoch 20 --len_clip 8
+python src/train.py path_to_the_config_file
 ```
 
-Weights are saved in 'runs/training/weights'.
+The config file can be found at src/config/parameters.yaml in our repository.
 
-You can also train models in a batch with multiple K values at the same time using: 'batch_train_recognition.sh'.
+We recommend to use MLflow to follow the training metrics. To do this, set "MLFLOW" to "true" in the config file and launch the MLflow session with:
+
+```Shell
+mlflow ui
+```
 
 ### Validation
 
-To obtain the frame mAP from the validation set you can use the following command line (example for K=8 and epoch=20):
+Validation metrics can be computed during training if set to "true" in the config file.
+
+To run the validation separately use the following command line:
+
 ```Shell
-python -m src.evaluator.eval_recognition --version yowo_v2_nano --len_clip 8 --img_size 224 --cal_frame_mAP --eval_split val --epoch 20
+Coming Soon
 ```
-
-To obtain the video mAP from the validation set you can use the following command line (example for K=8 and epoch=20):
-```Shell
-python -m src.evaluator.eval_recognition --version yowo_v2_nano --len_clip 8 --img_size 224 --cal_frame_mAP --eval_split val --epoch 20
-```
-
-Results are saved in 'runs/evaluation/recognition'.
-
-You can also run multiple combinations at the same time using: 'batch_eval_recognition.sh'.
-
-## <div align="center">Dance Tracking Validation</div>
-
-To obtain the metrics from the validation set you can use the following command line (example for K=8 and epoch=20):
-```Shell
-python -m src.evaluator.eval_tracking --version yowo_v2_nano --len_clip 8 --eval_split val --epoch 20
-```
-
-You can also run multiple combinations at the same time with: 'batch_eval_tracking.sh'.
 
 ## <div align="center">Inference</div>
 
 ### Infer on a new dataset
 
-To prepare a new datasets for inference, you have to use the following command line first:
-```Shell
-python src/dataset/add_dataset.py --dataset name_of_the_new_dataset
-```
-and then copy your videos to 'dataset/name_of_the_new_dataset/videos'.
-
-Then, to infer on this new dataset you can use the following command line (example):
-```Shell
-python -m src.inference.infer --version yowo_v2_nano --dataset name_of_my_dataset --video_format mp4 --len_clip 8 --img_size 960,540 --min_duration 55 --ext_tool labelme --result_video
-```
-
-The weights will be sourced from 'runs/training/weights'. The --img_size parameter will automatically resize videos to the nearest multiple of 32. Our latest weights available were trained on 224x224 video frames instead of the 448x448 ones used in the paper (448x448 video frames clipped from 1920x1080 videos and downsampled to 224x224). If you're using videos of a similar resolution (1920x1080 with a similar zoom level), it's recommended to process them similarly and set --img_size to half the size of your video resolution when infering.
+*Coming soon.*
 
 ### Translation to geographic coordinates
 
-(!) This part is under development.
+*Coming soon.*
 
 ### Use outputs from the model to augment the training dataset
 
-Outputs are automatically converted to the labelme format at 'runs/inference/name_of_my_dataset/labelme' if you use the parameter --labelme during inference. You can freely correct these annotations and incorporate them back to the training dataset.
+*Coming soon.*
 
 ## <div align="center">License</div>
 

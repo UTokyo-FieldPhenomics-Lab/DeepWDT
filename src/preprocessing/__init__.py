@@ -1,1 +1,1 @@
-from .transforms import Augmentation
+from .transforms import Augmentation, BaseTransform

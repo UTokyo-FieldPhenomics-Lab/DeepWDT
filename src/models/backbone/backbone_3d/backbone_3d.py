@@ -1,7 +1,9 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .cnn_3d import build_3d_cnn
+from .cnn_3d.resnet import build_resnet_3d
+from .cnn_3d.resnext import build_resnext_3d
+from .cnn_3d.shufflnetv2 import build_shufflenetv2_3d
 
 
 class Conv(nn.Module):
@@ -46,9 +48,26 @@ class ConvBlocks(nn.Module):
 class Backbone3D(nn.Module):
     def __init__(self, backbone_3d, model_size, pretrained=False):
         super().__init__()
+        print(f'Using {backbone_3d} as the 3D backbone.')
 
-        # 3D CNN
-        self.backbone, self.feat_dim = build_3d_cnn(backbone_3d, model_size, pretrained)
+        if 'resnet' in backbone_3d:
+            self.backbone, self.feat_dim = build_resnet_3d(
+                model_name=backbone_3d,
+                pretrained=pretrained
+            )
+        elif 'resnext' in backbone_3d:
+            self.backbone, self.feat_dim = build_resnext_3d(
+                model_name=backbone_3d,
+                pretrained=pretrained
+            )
+        elif 'shufflenetv2' in backbone_3d:
+            self.backbone, self.feat_dim = build_shufflenetv2_3d(
+                model_size=model_size,
+                pretrained=pretrained
+            )
+        else:
+            print('Unknown Backbone ...')
+            exit()
         
        
     def forward(self, x):
@@ -65,3 +84,8 @@ class Backbone3D(nn.Module):
         feat = self.backbone(x)
 
         return feat
+
+
+def build_backbone_3d(backbone_3d, model_size, pretrained=False):
+    backbone = Backbone3D(backbone_3d, model_size, pretrained)
+    return backbone, backbone.feat_dim

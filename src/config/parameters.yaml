@@ -2,8 +2,8 @@ MODEL:
   FREEZE_BACKBONE:
     2D: false
     3D: false
-  VERSION: yowo_v2_nano
-  RESUME: ''
+  VERSION:  yowo_v2_nano
+  RESUME: '/Users/sylvaingrs/Documents/Github/DeepWDT/src/epoch_10.pth'
   CONF_THRESH: 0.01
   IOU_THRESH: 0.5
   NMS_THRESH: 0.5
@@ -25,7 +25,7 @@ TRAIN:
     CENTERED_CLIP: false
   DEVICE: gpu
   GPU: [0,]
-  MAX_EPOCH: 10
+  MAX_EPOCH: 1
   MLFLOW: true
   SOLVER:
     ACCUMULATE: 1
@@ -47,13 +47,14 @@ TRAIN:
   NUM_WORKERS: 8
 
 EVAL:
+  BATCH_SIZE: 8
   GROUND_TRUTH: data/training_dataset/evaluation/
+  NUM_WORKERS: 8
   RECOGNITION:
-    FMAP: false
-    VMAP: false
+    FMAP: true
+    VMAP: true
   TRACKING: true
-  EVAL_SPLIT: val
-  EVAL:
-    TRACKING:
-      METHOD: DeepSort
+  TRACKING_METHOD: DeepSort
+  SPLIT: val
   VIS_THRESH: 0.3
+  IOU_THRESH: 0.5

@@ -120,8 +120,8 @@ def anno_lists(args):
 
 def eval_folder(args):
     vallist_path = os.path.join(args.dataset, 'vallist.txt')
-    dest_dir = os.path.join('./src/evaluator',
-                            'training_dataset_evaluation', 'val')
+    dest_dir = os.path.join('./data/training_dataset',
+                            'evaluation', 'val')
     
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
@@ -142,7 +142,7 @@ def eval_folder(args):
 
 def test_folder(args):
     vallist_path = os.path.join(args.dataset, 'testlist.txt')
-    dest_dir = os.path.join('./src/evaluator',
+    dest_dir = os.path.join('./data/training_dataset',
                             'evaluation', 'test')
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
@@ -217,11 +217,11 @@ def finalAnnots(args):
 if __name__ == '__main__':
     print('Preparing dataset...')
     args = parse_args()
-    anno_lists01(args)
-    anno_frame(args)
-    anno_labels(args)
-    anno_lists(args)
+    # anno_lists01(args)
+    # anno_frame(args)
+    # anno_labels(args)
+    # anno_lists(args)
     eval_folder(args)
     test_folder(args)
-    finalAnnots(args)
+    # finalAnnots(args)
     print('Dataset ready!')

@@ -5,8 +5,6 @@ from torch.autograd import Variable
 from torch.hub import load_state_dict_from_url
 from functools import partial
 
-__all__ = ['resnext50', 'resnext101', 'resnet152']
-
 
 model_urls = {
     "resnext50": "https://github.com/yjh0410/PyTorch_YOWO/releases/download/yowo-weight/resnext-50-kinetics.pth",

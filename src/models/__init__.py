@@ -1,1 +1,1 @@
-from .detector.yowo import build_model
+from .detector.yowo import build_yowo_model

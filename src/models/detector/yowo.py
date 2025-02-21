@@ -12,7 +12,7 @@ from utils.nms import multiclass_nms
 
 
 class YOWO(nn.Module):
-    def __init__(self, parameters, model_architecture, nb_class, device, trainable):
+    def __init__(self, parameters, model_architecture, nb_class, device, trainable, multi_hot = False):
         super(YOWO, self).__init__()
 
         self.num_classes = nb_class
@@ -23,8 +23,7 @@ class YOWO(nn.Module):
         self.conf_thresh = parameters['CONF_THRESH']
         self.nms_thresh = parameters['NMS_THRESH']
         self.topk = parameters['TOP_K']
-
-        # ------------------ Network ---------------------
+        self.multi_hot = multi_hot
 
         # 2D backbone
         self.backbone_2d, bk_dim_2d = build_backbone_2d(
@@ -36,7 +35,7 @@ class YOWO(nn.Module):
             model_architecture['backbone_3d'], model_architecture['model_size'],
             pretrained=model_architecture['pretrained_3d'] and trainable)
 
-        # cls channel encoder
+        # Classification channel encoder
         self.cls_channel_encoders = nn.ModuleList(
             [
                 build_channel_encoder(model_architecture['head_act'],
@@ -46,7 +45,7 @@ class YOWO(nn.Module):
              for i in range(len(model_architecture['stride']))
             ])
             
-        # reg channel & spatial encoder
+        # Regression channel & spatial encoders
         self.reg_channel_encoders = nn.ModuleList(
             [build_channel_encoder(model_architecture['head_act'],
                                    model_architecture['head_norm'],
@@ -429,7 +428,7 @@ class YOWO(nn.Module):
 
 
 # Build YOWO
-def build_model(parameters, model_architecture, nb_class, device, trainable):
+def build_yowo_model(parameters, model_architecture, nb_class, device, trainable):
 
     model = YOWO(parameters, model_architecture, nb_class, device, trainable)
 
@@ -444,6 +443,7 @@ def build_model(parameters, model_architecture, nb_class, device, trainable):
                 m.requires_grad = False
 
         if parameters['RESUME']:
+            print(f'Using pre-trained parameters from {parameters["RESUME"]}')
             checkpoint = torch.load(parameters['RESUME'], map_location='cpu')
             checkpoint_state_dict = checkpoint.pop("model")
             model.load_state_dict(checkpoint_state_dict)

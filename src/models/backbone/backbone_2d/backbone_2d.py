@@ -1,17 +1,24 @@
 import torch.nn as nn
-from .cnn_2d import build_2d_cnn
+from .cnn_2d.yolo_free import build_yolo_free
 
 
 class Backbone2D(nn.Module):
     def __init__(self, backbone_2d, pretrained=False):
         super().__init__()
-        self.backbone, self.feat_dims = build_2d_cnn(backbone_2d, pretrained)
 
-        
+        if backbone_2d in ['yolo_free_pico', 'yolo_free_nano', 'yolo_free_tiny', 'yolo_free_large', 'yolo_free_huge']:
+            print(f'Using {backbone_2d} as the 2D backbone.')
+            self.backbone, self.feat_dims = build_yolo_free(backbone_2d, pretrained)
+
+        else:
+            print('Unknown 2D Backbone ...')
+            exit()
+
     def forward(self, x):
         """
             Input:
                 x: (Tensor) -> [B, C, H, W]
+            Output:
             Output:
                 y: (List) -> [
                     (Tensor) -> [B, C1, H1, W1],
@@ -22,3 +29,8 @@ class Backbone2D(nn.Module):
         feat = self.backbone(x)
 
         return feat
+
+
+def build_backbone_2d(backbone_2d, pretrained=False):
+    backbone = Backbone2D(backbone_2d, pretrained)
+    return backbone, backbone.feat_dims
