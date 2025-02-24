@@ -143,21 +143,21 @@ class Augmentation(object):
         oh = video_clip[0].height
         ow = video_clip[0].width
 
-        # random crop
+        # Random crop
         video_clip, dx, dy, sx, sy = self.random_crop(video_clip, ow, oh)
 
-        # resize
+        # Resize
         video_clip = [img.resize([self.img_size, self.img_size]) for img in video_clip]
 
-        # random flip
+        # Random flip
         flip = random.randint(0, 1)
         if flip:
             video_clip = [img.transpose(Image.FLIP_LEFT_RIGHT) for img in video_clip]
 
-        # distort
+        # Distort
         video_clip = self.random_distort_image(video_clip)
 
-        # process target
+        # Process target
         if target is not None:
             target = self.apply_bbox(target, ow, oh, dx, dy, sx, sy)
             if flip:
@@ -165,7 +165,7 @@ class Augmentation(object):
         else:
             target = np.array([])
 
-        # to tensor
+        # To tensor
         video_clip = self.to_tensor(video_clip)
         target = torch.as_tensor(target).float()
 

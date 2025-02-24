@@ -16,9 +16,9 @@ TRAIN:
     HUE: 0.1
     JITTER: 0.2
     SATURATION: 1.5
-  BATCH_SIZE: 8
+  BATCH_SIZE: 1
   DATASET:
-    NAME: training_dataset
+    NAME: bengaluru_01
     CLASS: ['Dancing']
     IMAGE_SIZE: 224
     LEN_CLIP: 3
@@ -44,11 +44,10 @@ TRAIN:
       CLS_WEIGHT: 1
       REG_WEIGHT: 5
       FOCAL_LOSS: false
-  NUM_WORKERS: 8
+  NUM_WORKERS: 1
 
 EVAL:
-  BATCH_SIZE: 8
-  GROUND_TRUTH: data/training_dataset/evaluation/
+  BATCH_SIZE: 16
   NUM_WORKERS: 8
   RECOGNITION:
     FMAP: true
@@ -58,3 +57,5 @@ EVAL:
   SPLIT: val
   VIS_THRESH: 0.3
   IOU_THRESH: 0.5
+
+INFER:

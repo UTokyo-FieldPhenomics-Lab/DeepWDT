@@ -2,44 +2,17 @@ torch
 
 torchvision
 
-thop
+petname
 
-scipy
-
-matplotlib
+yaml
 
 numpy
 
-imageio
-
 pandas
-
-scipy
 
 pillow
 
-plotly
-
-scikit-learn
-
-deep_sort_realtime
-
-pysolar
-
-timezonefinder
-
-folium
-
-geopandas
-
-pyyaml
-
-opencv-python
-
-geopy
-
-mlflow
-
-petname
-
 tqdm
+
+bytetracker
+

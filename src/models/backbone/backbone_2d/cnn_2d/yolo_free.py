@@ -27,36 +27,6 @@ model_urls = {
 
 
 yolo_free_config = {
-    'yolo_free_pico': {
-        # model
-        'backbone': 'shufflenetv2_0.25x',
-        'pretrained': False,
-        'stride': [8, 16, 32],  # P3, P4, P5
-        'anchor_size': None,
-        # neck
-        'neck': 'sppf',
-        'neck_dim': 232,
-        'expand_ratio': 0.5,
-        'pooling_size': 5,
-        'neck_act': 'lrelu',
-        'neck_norm': 'BN',
-        'neck_depthwise': True,
-        # fpn
-        'fpn': 'pafpn_elan',
-        'fpn_size': 'nano',
-        'fpn_dim': [116, 232, 232],
-        'fpn_norm': 'BN',
-        'fpn_act': 'lrelu',
-        'fpn_depthwise': True,
-        # head
-        'head': 'decoupled_head',
-        'head_dim': 64,
-        'head_norm': 'BN',
-        'head_act': 'lrelu',
-        'num_cls_head': 2,
-        'num_reg_head': 2,
-        'head_depthwise': True,
-        },
 
     'yolo_free_nano': {
         # model

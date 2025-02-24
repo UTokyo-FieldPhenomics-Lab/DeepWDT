@@ -155,13 +155,13 @@ dmypy.json
 cython_debug/
 
 # Extensions and folder
-data/training_dataset
+data/bengaluru_01
 data/others
 runs/training
 runs/evaluation
 runs/inference
 runs/train
-data/training_dataset/training_dataset_evaluation
+data/bengaluru_01/training_dataset_evaluation
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
