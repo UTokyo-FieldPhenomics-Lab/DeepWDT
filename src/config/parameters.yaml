@@ -3,7 +3,7 @@ MODEL:
     2D: false
     3D: false
   VERSION:  yowo_v2_nano
-  RESUME: '/Users/sylvaingrs/Documents/Github/DeepWDT/src/epoch_10.pth'
+  RESUME: # '/Users/sylvaingrs/Documents/Github/DeepWDT/src/epoch_10.pth'
   CONF_THRESH: 0.01
   IOU_THRESH: 0.5
   NMS_THRESH: 0.5
@@ -16,23 +16,23 @@ TRAIN:
     HUE: 0.1
     JITTER: 0.2
     SATURATION: 1.5
-  BATCH_SIZE: 1
+  BATCH_SIZE: 8
   DATASET:
     NAME: bengaluru_01
     CLASS: ['Dancing']
     IMAGE_SIZE: 224
     LEN_CLIP: 3
-    CENTERED_CLIP: false
+    CENTERED_CLIP: true
   DEVICE: gpu
   GPU: [0,]
-  MAX_EPOCH: 1
+  MAX_EPOCH: 20
   MLFLOW: true
   SOLVER:
     ACCUMULATE: 1
     BASE_LR: 0.00005
     MIN_LR_RATIO: 0.25
     WARMUP_EPOCH: 1
-    NO_DECREASE_LR_EPOCH: 7
+    NO_DECREASE_LR_EPOCH: 5
     OPTIMIZER: adamw
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.0005

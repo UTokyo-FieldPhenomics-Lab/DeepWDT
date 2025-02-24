@@ -82,7 +82,7 @@ def train(parameters, models_architecture, run_name):
     model = build_yowo_model(
         parameters         = parameters['MODEL'],
         model_architecture = models_architecture[parameters['MODEL']['VERSION']],
-        nb_class           = len(parameters['TRAIN']['DATASET']['CLASS'])+1,
+        nb_class           = len(parameters['TRAIN']['DATASET']['CLASS']),
         device             = device,
         trainable          = True)
     model = model.to(device).train()
