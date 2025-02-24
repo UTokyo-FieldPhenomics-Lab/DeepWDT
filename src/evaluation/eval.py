@@ -1,8 +1,10 @@
+import os
 from tqdm import tqdm
 
+import cv2
 import numpy as np
 import pandas as pd
-from bytetracker import BYTETracker
+from .sort import Sort, iou_batch
 
 
 def detect(df_results, dataloader, model, parameters, device):
@@ -11,7 +13,7 @@ def detect(df_results, dataloader, model, parameters, device):
 
         # Model inference
         video_clips = video_clips.to(device)
-        outputs = model(video_clips) #scores, labels, boxes
+        outputs = model(video_clips) # scores, labels, bboxes
 
         # Add results to a dataframe
         scores, labels, bboxes = outputs
@@ -35,9 +37,9 @@ def detect(df_results, dataloader, model, parameters, device):
     return df_results
 
 
-def thieve_confidence(df, threshold=0):
+def thieve_confidence(df, threshold=0.1):
 
-    return df[df['confidence'] > threshold]
+    return df[df['confidence'] >= threshold]
 
 
 def compute_iou(boxA, boxB):
@@ -111,7 +113,8 @@ def nms(detections, threshold=0.5):
 
 def track(df, threshold=0.3):
     """
-    Produces a tube id for each detection by tracking detections in videos throughout frames using ByteTracker.
+    Produces a tube id for each detection by tracking detections in videos
+    throughout frames using SORT.
 
     Args:
         df (pandas.DataFrame): The dataframe containing YOWO detections
@@ -122,60 +125,122 @@ def track(df, threshold=0.3):
         pandas.DataFrame: The original dataframe with an added column 'tube_id'
             indicating the track ID for each detection.
     """
-    # Create a new column for tube_id and initialize with -1 (untracked)
+
+    # Make sure we have a copy of the dataframe to avoid modifying the original.
     df = df.copy()
-    df["tube_id"] = -1
+    # Prepare a list to hold per-video results
+    results = []
 
-    # Process each video separately (optionally you can also group by class)
-    for video, video_df in df.groupby("video"):
-        # Option: group by class if you want separate trackers per object category.
-        # Here we assume objects of different classes should be tracked separately.
-        for cls, group_df in video_df.groupby("class"):
-            # Sort by frame to ensure correct temporal order.
-            group_df = group_df.sort_values(by="frame")
-            # Initialize a ByteTracker instance.
-            # (Parameters here are examples; adjust track_thresh, match_thresh, track_buffer, and frame_rate as needed.)
-            tracker = BYTETracker(track_thresh=threshold, match_thresh=0.8, track_buffer=30, frame_rate=30)
+    # Process each video separately
+    for video_id in df['video'].unique():
+        video_df = df[df['video'] == video_id].copy()
+        video_df.sort_values(by='frame', inplace=True)
+        # Initialize a SORT tracker for this video
+        tracker = Sort(max_age=2, iou_threshold=threshold)
+        # To collect processed frames for the video
+        video_results = []
 
-            # Process frame-by-frame.
-            frames = group_df["frame"].unique()
-            for frame in sorted(frames):
-                frame_dets = group_df[group_df["frame"] == frame]
+        # Process frames in order
+        for frame in sorted(video_df['frame'].unique()):
+            frame_df = video_df[video_df['frame'] == frame].copy()
+            # Prepare detections: array of [x0, y0, x1, y1, confidence]
+            dets = frame_df[['x0', 'y0', 'x1', 'y1', 'confidence']].values
 
-                # Prepare detections for ByteTracker.
-                # ByteTracker expects detections as [x, y, w, h, score]
-                dets = []
-                for _, row in frame_dets.iterrows():
-                    x, y = row["x0"], row["y0"]
-                    w = row["x1"] - row["x0"]
-                    h = row["y1"] - row["y0"]
-                    score = row["confidence"]
-                    dets.append([x, y, w, h, score])
-                dets = np.array(dets) if dets else np.empty((0, 5))
+            # Update the tracker for this frame.
+            # The update method returns an array with rows of [x0, y0, x1, y1, tube_id]
+            tracks = tracker.update(dets)
 
-                # Update tracker for the current frame.
-                online_targets = tracker.update(dets, frame_id=int(frame))
+            # For each detection, we compute the IoU with every track output.
+            # Use the provided iou_batch function (assumed to be in scope).
+            if tracks.shape[0] > 0:
+                # Compute IoU between detections (as bb_test) and tracker boxes (as bb_gt)
+                ious = iou_batch(frame_df[['x0', 'y0', 'x1', 'y1']].values, tracks[:, :4])
+                # For each detection, pick the tracker with the highest IoU.
+                max_ious = ious.max(axis=1)
+                best_match_idx = ious.argmax(axis=1)
+                # Assign tube_id if IoU exceeds threshold; otherwise assign NaN.
+                tube_ids = [
+                    tracks[best_match_idx[i], 4] if max_ious[i] >= threshold else np.nan
+                    for i in range(len(max_ious))
+                ]
+                frame_df['tube_id'] = tube_ids
+            else:
+                frame_df['tube_id'] = np.nan
 
-                # For each detection in the frame, match with tracker output using IoU.
-                for det_idx, (index, row) in enumerate(frame_dets.iterrows()):
-                    # Detection bounding box in [x0, y0, x1, y1] format.
-                    det_box = [row["x0"], row["y0"], row["x1"], row["y1"]]
-                    best_iou = 0
-                    best_track = -1
-                    # Compare with each online target.
-                    for target in online_targets:
-                        # Tracker returns bounding box as tlwh: [x, y, w, h]
-                        tx, ty, tw, th = target.tlwh
-                        track_box = [tx, ty, tx + tw, ty + th]
-                        iou_val = compute_iou(det_box, track_box)
-                        if iou_val > best_iou:
-                            best_iou = iou_val
-                            best_track = target.track_id
-                    # If the best IoU exceeds the threshold, assign the tube_id.
-                    if best_iou >= threshold:
-                        df.loc[index, "tube_id"] = best_track
+            video_results.append(frame_df)
+        results.append(pd.concat(video_results, ignore_index=True))
+    return pd.concat(results, ignore_index=True)
 
-    return df
+
+def thieve_length(detections, threshold=0):
+    pass
+
+
+def visualization(detections):
+    """
+    Save videos with results plot on it.
+
+    Args:
+        detections (pandas.DataFrame): The dataframe containing YOWO detections
+            with columns: [video (without extension, need to add mp4), frame, class,
+            x0, y0, x1, y1, confidence, tube_id].
+    """
+    # Define paths.
+    path_videos = '/Users/sylvaingrs/Documents/Github/DeepWDT/data/bengaluru_01/videos'
+    path_save = '/Users/sylvaingrs/Documents/Github/DeepWDT/runs/test/'
+
+    # Ensure the save directory exists.
+    if not os.path.exists(path_save):
+        os.makedirs(path_save)
+
+    # Process each unique video.
+    for video in detections['video'].unique():
+        video_file = os.path.join(path_videos, video + '.mp4')
+        cap = cv2.VideoCapture(video_file)
+        if not cap.isOpened():
+            print(f"Error opening video file: {video_file}")
+            continue
+
+        # Get video properties.
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out_file = os.path.join(path_save, video + '_vis.mp4')
+        out = cv2.VideoWriter(out_file, fourcc, fps, (width, height))
+
+        # Filter detections for the current video.
+        video_dets = detections[detections['video'] == video]
+
+        frame_idx = 0
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Get detections corresponding to the current frame.
+            current_dets = video_dets[video_dets['frame'] == frame_idx]
+
+            # Draw each detection on the frame.
+            for _, row in current_dets.iterrows():
+                x0, y0, x1, y1 = int(row['x0']), int(row['y0']), int(row['x1']), int(row['y1'])
+                conf = row['confidence']
+                cls = row['class']
+                # Draw bounding box.
+                cv2.rectangle(frame, (x0, y0), (x1, y1), (0, 255, 0), 2)
+                # Prepare label: if tube_id is nan, show "NA"
+                label = f"ID:{cls} {conf:.2f}"
+                # Put label above the bounding box.
+                cv2.putText(frame, label, (x0, y0 - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+            # Write the frame with overlayed detections.
+            out.write(frame)
+            frame_idx += 1
+
+        cap.release()
+        out.release()
+        print(f"Saved visualization video to {out_file}")
 
 
 def get_metrics(df, tubes):
@@ -196,14 +261,27 @@ def eval_model(dataloader, tubes, model, parameters, device):
         }
     )
 
+    print('1. Detecting dancing bees...')
     detections = detect(df_results, dataloader, model, parameters, device)
 
+    print('2. Thieving detections based on the confidence score...')
     detections = thieve_confidence(detections)
+    detections[['x0', 'x1', 'y0', 'y1']] = detections[['x0', 'x1', 'y0', 'y1']] * 224
+    visualization(detections)
 
-    detection  = nms(detections)
+    print('3. Running NMS...')
+    detections  = nms(detections)
+
+    print('4. Tracking dancing bees...')
 
     detections = track(detections)
 
+    # print('5. Thieving short dances...')
+    # detections = thieve_length(detections)
+
+    visualization(detections)
+
+    print('6. Computing evaluation metrics...')
     eval_metrics = get_metrics(detections, tubes)
 
     pass

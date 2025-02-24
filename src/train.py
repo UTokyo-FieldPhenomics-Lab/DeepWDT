@@ -109,87 +109,87 @@ def train(parameters, models_architecture, run_name):
     for epoch in range(start_epoch, max_epoch):
         t0 = time.time()
 
-        # for iter_i, (frame_ids, video_clips, targets) in enumerate(training_dataloader):
-        #     ni = iter_i + epoch * epoch_size
-        #
-        #     # Model inference
-        #     video_clips = video_clips.to(device)
-        #     outputs = model(video_clips)
-        #
-        #     # Loss calculation
-        #     loss_dict = criterion(outputs, targets)
-        #     losses = loss_dict['losses']
-        #     loss_dict_reduced = distributed_utils.reduce_dict(loss_dict)
-        #     if torch.isnan(losses):
-        #         print('The loss is NAN, continue.')
-        #         continue
-        #
-        #     # Optimize
-        #     losses /= parameters['TRAIN']['SOLVER']['ACCUMULATE']
-        #     losses.backward()
-        #     if ni % parameters['TRAIN']['SOLVER']['ACCUMULATE'] == 0:
-        #         optimizer.step()
-        #         optimizer.zero_grad()
-        #
-        #     # Logs
-        #     if iter_i % 10 == 0:
-        #         t1 = time.time()
-        #         delta = t1-t0
-        #
-        #         # Console log
-        #         cur_lr = [param_group['lr']  for param_group in optimizer.param_groups]
-        #         print_log(cur_lr,
-        #                   epoch,
-        #                   max_epoch,
-        #                   iter_i,
-        #                   epoch_size,
-        #                   loss_dict_reduced,
-        #                   delta,
-        #                   parameters['TRAIN']['SOLVER']['ACCUMULATE'])
-        #
-        #         # MLflow log
-        #         mlflow.log_metric('lr', cur_lr[0], step=ni)
-        #         for k in loss_dict_reduced.keys():
-        #             if k == 'losses':
-        #                 mlflow.log_metric(k, loss_dict_reduced[k]* accumulate, step=ni)
-        #             else:
-        #                 mlflow.log_metric(k, loss_dict_reduced[k], step=ni)
-        #         mlflow.log_metric('time_in_seconds', delta, step=ni)
-        #         t0 = time.time()
-        #
-        #     # LR scheduler update
-        #     lr_scheduler_func = get_lr_scheduler(
-        #         lr=parameters['TRAIN']['SOLVER']['BASE_LR'],
-        #         warmup_total_iters = parameters['TRAIN']['SOLVER']['WARMUP_EPOCH']*epoch_size,
-        #         no_aug_iters = parameters['TRAIN']['SOLVER']['NO_DECREASE_LR_EPOCH']*epoch_size,
-        #         total_iters = max_epoch*epoch_size,
-        #         warmup_lr_start = 0,
-        #         min_lr_ratio = parameters['TRAIN']['SOLVER']['MIN_LR_RATIO'])
-        #     set_optimizer_lr(optimizer, lr_scheduler_func, ni)
-        #
-        # # Save the model
-        # version = parameters['MODEL']['VERSION'].split('_')[-1]
-        # len_clip = parameters['TRAIN']['DATASET']
-        # path_to_save = os.path.join(f'runs/train/{run_name}/weights', f'{version}_K{len_clip}')
-        # os.makedirs(path_to_save, exist_ok=True)
-        #
-        # weight_name = f'epoch_{epoch+1}.pth'
-        # checkpoint_path = os.path.join(path_to_save, weight_name)
-        # torch.save(
-        #     {
-        #         'model': model.state_dict(),
-        #         'epoch': epoch,
-        #         'args': parameters
-        #     },
-        #     checkpoint_path)
+        for iter_i, (frame_ids, video_clips, targets) in enumerate(training_dataloader):
+            ni = iter_i + epoch * epoch_size
+
+            # Model inference
+            video_clips = video_clips.to(device)
+            outputs = model(video_clips)
+
+            # Loss calculation
+            loss_dict = criterion(outputs, targets)
+            losses = loss_dict['losses']
+            loss_dict_reduced = distributed_utils.reduce_dict(loss_dict)
+            if torch.isnan(losses):
+                print('The loss is NAN, continue.')
+                continue
+
+            # Optimize
+            losses /= parameters['TRAIN']['SOLVER']['ACCUMULATE']
+            losses.backward()
+            if ni % parameters['TRAIN']['SOLVER']['ACCUMULATE'] == 0:
+                optimizer.step()
+                optimizer.zero_grad()
+
+            # Logs
+            if iter_i % 10 == 0:
+                t1 = time.time()
+                delta = t1-t0
+
+                # Console log
+                cur_lr = [param_group['lr']  for param_group in optimizer.param_groups]
+                print_log(cur_lr,
+                          epoch,
+                          max_epoch,
+                          iter_i,
+                          epoch_size,
+                          loss_dict_reduced,
+                          delta,
+                          parameters['TRAIN']['SOLVER']['ACCUMULATE'])
+
+                # MLflow log
+                mlflow.log_metric('lr', cur_lr[0], step=ni)
+                for k in loss_dict_reduced.keys():
+                    if k == 'losses':
+                        mlflow.log_metric(k, loss_dict_reduced[k]* accumulate, step=ni)
+                    else:
+                        mlflow.log_metric(k, loss_dict_reduced[k], step=ni)
+                mlflow.log_metric('time_in_seconds', delta, step=ni)
+                t0 = time.time()
+
+            # LR scheduler update
+            lr_scheduler_func = get_lr_scheduler(
+                lr=parameters['TRAIN']['SOLVER']['BASE_LR'],
+                warmup_total_iters = parameters['TRAIN']['SOLVER']['WARMUP_EPOCH']*epoch_size,
+                no_aug_iters = parameters['TRAIN']['SOLVER']['NO_DECREASE_LR_EPOCH']*epoch_size,
+                total_iters = max_epoch*epoch_size,
+                warmup_lr_start = 0,
+                min_lr_ratio = parameters['TRAIN']['SOLVER']['MIN_LR_RATIO'])
+            set_optimizer_lr(optimizer, lr_scheduler_func, ni)
+
+        # Save the model
+        version = parameters['MODEL']['VERSION'].split('_')[-1]
+        len_clip = parameters['TRAIN']['DATASET']
+        path_to_save = os.path.join(f'runs/train/{run_name}/weights', f'{version}_K{len_clip}')
+        os.makedirs(path_to_save, exist_ok=True)
+
+        weight_name = f'epoch_{epoch+1}.pth'
+        checkpoint_path = os.path.join(path_to_save, weight_name)
+        torch.save(
+            {
+                'model': model.state_dict(),
+                'epoch': epoch,
+                'args': parameters
+            },
+            checkpoint_path)
 
         # Evaluate the model
-        print('Evaluating the model...')
-        model.eval()
-        model.trainable = False
-        eval_model(evaluation_dataloader, validation_dataset.tubes, model, parameters['EVAL'], device)
-        model.train()
-        model.trainable = True
+        # print('Evaluating the model...')
+        # model.eval()
+        # model.trainable = False
+        # eval_model(evaluation_dataloader, validation_dataset.tubes, model, parameters['EVAL'], device)
+        # model.train()
+        # model.trainable = True
 
 
 if __name__ == '__main__':

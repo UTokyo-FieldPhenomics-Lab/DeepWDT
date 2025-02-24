@@ -1,18 +1,19 @@
-torch
-
-torchvision
+sort-track
 
 petname
 
-yaml
+pyyaml
 
-numpy
+torch
 
 pandas
 
-pillow
-
 tqdm
 
-bytetracker
+torchvision
 
+mlflow
+
+filterpy
+
+opencv-python

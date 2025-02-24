@@ -173,3 +173,5 @@ data/bengaluru_01/training_dataset_evaluation
 # Added
 *.MOV
 /mlruns
+/src/mlruns
+/runs

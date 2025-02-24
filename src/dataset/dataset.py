@@ -35,6 +35,7 @@ class WaggleDanceDataset(Dataset):
         self.num_samples  = len(self.frame_list)
 
         # Load tube list
+        self.tubes = []
 
     def __len__(self):
         return self.num_samples
