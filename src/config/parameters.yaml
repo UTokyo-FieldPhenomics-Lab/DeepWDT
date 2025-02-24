@@ -16,12 +16,12 @@ TRAIN:
     HUE: 0.1
     JITTER: 0.2
     SATURATION: 1.5
-  BATCH_SIZE: 8
+  BATCH_SIZE: 16
   DATASET:
     NAME: bengaluru_01
     CLASS: ['Dancing']
     IMAGE_SIZE: 224
-    LEN_CLIP: 3
+    LEN_CLIP: 5
     CENTERED_CLIP: true
   DEVICE: gpu
   GPU: [0,]
@@ -44,7 +44,7 @@ TRAIN:
       CLS_WEIGHT: 1
       REG_WEIGHT: 5
       FOCAL_LOSS: false
-  NUM_WORKERS: 1
+  NUM_WORKERS: 8
 
 EVAL:
   BATCH_SIZE: 8
