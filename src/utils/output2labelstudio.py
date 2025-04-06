@@ -62,6 +62,6 @@ def csv_to_label_studio_json(csv_path, output_path):
     print(f"Label Studio JSON file created at: {output_path}")
 
 # Example usage
-csv_path = "runs/inference/ginza_2024-6-17/tubes/MVI_5716.csv"
-output_path = "runs/inference/ginza_2024-6-17/tubes/MVI_5716.json"
+csv_path = ""
+output_path = ""
 csv_to_label_studio_json(csv_path, output_path)

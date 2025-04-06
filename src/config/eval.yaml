@@ -1,0 +1,39 @@
+eval:
+  device: cuda
+  weights:
+  dataset:
+    name: bengaluru_01
+    image_size: [224]
+    len_clip: 5
+    classes: ['Dancing']
+    centered_clip: false
+  model:
+    name: 'yowo'
+    backbone_2d:
+      name: 'yolo_free_nano'
+      frozen: false
+      pretrained: true
+      stride: [8,16,32]
+    backbone_3d:
+      name: 'shufflenetv2'
+      frozen: false
+      pretrained: true
+      memory_momentum: 0.9
+      model_size: "1.0x"
+    center_sampling_radius: 2.5
+    confidence_threshold: 0.01
+    nms_threshold: 0.5
+    top_k: 10
+    head_dim: 64
+    head_norm: BN
+    head_act: lrelu
+    num_cls_heads: 2
+    num_reg_heads: 2
+    head_depthwise: true
+  batch_size: 64
+  num_workers: 8
+  split: test
+  confidence_threshold: 0.5
+  iou_threshold: 0.5
+  nms_threshold: 0.5
+  tracking_method: SORT

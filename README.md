@@ -3,25 +3,29 @@
 This repository is the official implementation of DeepWDT (Deep Waggle Dance Translator), the most efficient and easy-to-use deep learning framework to detect and decode waggle dances.
 
 ## <div align="center">To-do</div>
-- [ ] Add a clear protocol to shoot and use custom videos appropriately
-- [X] Add MLflow support to the training loop
-- [ ] Add recognition and tracking evaluation directly to the training loop
-- [ ] Include a simpler tracking algorithm to reduce the inference time
-- [ ] Include a small recognition model to reduce the inference time 
-- [ ] Add an easier way to manually correct outputs from the inference
-- [ ] Add the ONNX format support
-- [ ] Make a notebook for easy inference from online
-  
+- [ ] Make a "quick start" google colab of the inference pipeline
+- [ ] Add geolocation mapping to the inference pipeline 
+- [ ] Add a lightweight version of the deep learning model for quick inference
+
+## <div align="center">Quick Start</div>
+
+*Google colab version coming soon.*
+
 ## <div align="center">Requirements</div>
 
 We recommend you to use Anaconda to create a conda environment:
 ```Shell
-conda create -n deepwdt python=3.9
+conda create -n deepwdt python=3.10
 ```
 
 Then, activate the environment:
 ```Shell
 conda activate deepwdt
+```
+
+Then, set up your working environment ot our repository:
+```Shell
+cd path_to_DeepWDT
 ```
 
 Then install requirements:
@@ -31,80 +35,77 @@ pip install -r requirements.txt
 
 ## <div align="center">Dataset preparation</div>
 
-To prepare our training set, copy the 'videos' folder and 'annotations.txt' into 'data/training_dataset' and launch the following command line:
+### Prepare our dataset
+
+As an example, the *Apis dorsata* training dataset can be downloaded at *link coming soon*.  
+
+To prepare it, copy the 'videos' folder and 'annotations.csv' into 'data/bengaluru_01' and launch the following command line:
 ```Shell
-python src/dataset/prepare_training_dataset.py -videos 
+python src/dataset/unpack.py 
 ```
-The most recent weights are from training on a version of the dataset that was resized to half the original size (224x224 instead of 448x448 as mentioned in our paper).
 
-The training dataset can be dowloaded at:
+Feel free to augment the dataset with your own data to improve the model's generalizability.
 
-You can freely add your own annotated videos to the training dataset to enhance the generalizability of the model.
+### Data collection advices
 
-## <div align="center">Dance Recognition Training and Validation</div>
+<div style="text-align:center">
+  <img src="docs/data_capture.png" alt="Data Capture" width="220"/>
+</div>
 
-For the detection of the dancing individuals, we adapted the original YOWOv2 network that can be found here : https://github.com/yjh0410/YOWOv2.
+<div style="text-align:center">
+  <img src="docs/hive.png" alt="Data Capture" width="220" />
+</div>
+
+As an example, for *Apis mellifera* videos, we recommend to capture videos with the camera pointing directly and straight at the hive frame and with the hive frame being fully inside the video frame
+
+For technical details, please refer to the inference part.
+
+## <div align="center">Training and Validation</div>
 
 ### Training
-To retrain the network on the training dataset, you can use the following command line (example for K=8):
+To retrain the network on the training dataset, you can use the following command line:
 
 ```Shell
-python -m src.training.train_recognition --version yowo_v2_nano --max_epoch 20 --len_clip 8
+python main.py --mode train --config src/config/train.yaml
 ```
 
-Weights are saved in 'runs/training/weights'.
+If using our training dataset, you can use the config file located at *src/config/train.yaml* in our repository.
 
-You can also train models in a batch with multiple K values at the same time using: 'batch_train_recognition.sh'.
+We recommend to use MLflow to follow the training metrics. To do this, set "MLFLOW" to "true" in the training config file and launch the MLflow session with:
+
+```Shell
+mlflow ui
+```
 
 ### Validation
 
-To obtain the frame mAP from the validation set you can use the following command line (example for K=8 and epoch=20):
+To run the validation using specific weights, use the following command line:
+
 ```Shell
-python -m src.evaluator.eval_recognition --version yowo_v2_nano --len_clip 8 --img_size 224 --cal_frame_mAP --eval_split val --epoch 20
+python main.py --mode eval --configuration src/config/eval.yaml
 ```
 
-To obtain the video mAP from the validation set you can use the following command line (example for K=8 and epoch=20):
-```Shell
-python -m src.evaluator.eval_recognition --version yowo_v2_nano --len_clip 8 --img_size 224 --cal_frame_mAP --eval_split val --epoch 20
-```
-
-Results are saved in 'runs/evaluation/recognition'.
-
-You can also run multiple combinations at the same time using: 'batch_eval_recognition.sh'.
-
-## <div align="center">Dance Tracking Validation</div>
-
-To obtain the metrics from the validation set you can use the following command line (example for K=8 and epoch=20):
-```Shell
-python -m src.evaluator.eval_tracking --version yowo_v2_nano --len_clip 8 --eval_split val --epoch 20
-```
-
-You can also run multiple combinations at the same time with: 'batch_eval_tracking.sh'.
+Don't forget to check that the configuration matches the one used when training the weights.
 
 ## <div align="center">Inference</div>
 
 ### Infer on a new dataset
 
-To prepare a new datasets for inference, you have to use the following command line first:
 ```Shell
-python src/dataset/add_dataset.py --dataset name_of_the_new_dataset
-```
-and then copy your videos to 'dataset/name_of_the_new_dataset/videos'.
-
-Then, to infer on this new dataset you can use the following command line (example):
-```Shell
-python -m src.inference.infer --version yowo_v2_nano --dataset name_of_my_dataset --video_format mp4 --len_clip 8 --img_size 960,540 --min_duration 55 --ext_tool labelme --result_video
+python main.py --mode infer --configuration src/config/infer.yaml
 ```
 
-The weights will be sourced from 'runs/training/weights'. The --img_size parameter will automatically resize videos to the nearest multiple of 32. Our latest weights available were trained on 224x224 video frames instead of the 448x448 ones used in the paper (448x448 video frames clipped from 1920x1080 videos and downsampled to 224x224). If you're using videos of a similar resolution (1920x1080 with a similar zoom level), it's recommended to process them similarly and set --img_size to half the size of your video resolution when infering.
+Our training dataset is made of videos taken at 30 fps, with a definition of 1920x1080 and downscaled by 0.5x, which helps to reduce the inference time.
+
+Thus, if you use our weight, we suggest to use 30 fps 1920x1080 videos and a downscale_factor of 0.5.
 
 ### Translation to geographic coordinates
 
-(!) This part is under development.
+Videos for inference should be named as the following template: video-name_x_y_yyyy_mm_dd_hh_mm_ss. In formation from the name will be used to produce maps.
 
 ### Use outputs from the model to augment the training dataset
 
-Outputs are automatically converted to the labelme format at 'runs/inference/name_of_my_dataset/labelme' if you use the parameter --labelme during inference. You can freely correct these annotations and incorporate them back to the training dataset.
+Outputs from the model will be transfered to 
 
 ## <div align="center">License</div>
 
