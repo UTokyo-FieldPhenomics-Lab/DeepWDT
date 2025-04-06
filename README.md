@@ -4,7 +4,7 @@ This repository is the official implementation of DeepWDT (Deep Waggle Dance Tra
 
 ## <div align="center">To-do</div>
 - [ ] Make a "quick start" google colab of the inference pipeline
-- [ ] Add geolocation mapping to the inference pipeline 
+- [ ] Add the mapping translation part to the inference pipeline 
 - [ ] Add a lightweight version of the deep learning model for quick inference
 
 ## <div align="center">Quick Start</div>
@@ -48,12 +48,9 @@ Feel free to augment the dataset with your own data to improve the model's gener
 
 ### Data collection advices
 
-<div style="text-align:center">
-  <img src="docs/data_capture.png" alt="Data Capture" width="220"/>
-</div>
-
-<div style="text-align:center">
-  <img src="docs/hive.png" alt="Data Capture" width="220" />
+<div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+  <img src="docs/data_capture.png" alt="Data Capture" width="300"/>
+  <img src="docs/hive.png" alt="Data Capture" width="300"/>
 </div>
 
 As an example, for *Apis mellifera* videos, we recommend to capture videos with the camera pointing directly and straight at the hive frame and with the hive frame being fully inside the video frame
