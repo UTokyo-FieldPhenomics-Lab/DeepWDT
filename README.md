@@ -46,14 +46,14 @@ python src/dataset/unpack.py
 
 Feel free to augment the dataset with your own data to improve the model's generalizability.
 
-### Data collection advices
+### Custom data collection advice
 
 <div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
   <img src="docs/data_capture.png" alt="Data Capture" width="300"/>
   <img src="docs/hive.png" alt="Data Capture" width="300"/>
 </div>
 
-As an example, for *Apis mellifera* videos, we recommend to capture videos with the camera pointing directly and straight at the hive frame and with the hive frame being fully inside the video frame
+As an example, for *Apis mellifera* videos, we recommend to capture videos with the camera pointing directly and straight at the hive frame and with the hive frame being fully inside the video frame. An ibservation hive is the optimal setup.
 
 For technical details, please refer to the inference part.
 
@@ -98,11 +98,13 @@ Thus, if you use our weight, we suggest to use 30 fps 1920x1080 videos and a dow
 
 ### Translation to geographic coordinates
 
-Videos for inference should be named as the following template: video-name_x_y_yyyy_mm_dd_hh_mm_ss. In formation from the name will be used to produce maps.
+In order to properly translate dances to geographic targets, videos should be named as the following template: video-name_x_y_yyyy_mm_dd_hh_mm_ss.
+
+*Translation part will be added soon.*
 
 ### Use outputs from the model to augment the training dataset
 
-Outputs from the model will be transfered to 
+*Coming soon.*
 
 ## <div align="center">License</div>
 
