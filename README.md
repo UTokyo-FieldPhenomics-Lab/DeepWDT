@@ -82,7 +82,7 @@ To run the validation using specific weights, use the following command line:
 python main.py --mode eval --configuration src/config/eval.yaml
 ```
 
-Don't forget to check that the configuration matches the one used when training the weights.
+Don't forget to check that the configuration matches the one used when training the weights and to add the path to your trained weights at eval:model:resume in the yaml configuration file.
 
 ## <div align="center">Inference</div>
 
