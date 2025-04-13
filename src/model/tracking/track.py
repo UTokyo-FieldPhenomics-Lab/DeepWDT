@@ -30,7 +30,7 @@ def track(df, iou_threshold=0.3, duration_threshold=15):
         video_df = df[df['video'] == video_id].copy()
         video_df.sort_values(by='frame_id', inplace=True)
         # Initialize a SORT tracker for this video
-        tracker = Sort(max_age=2, iou_threshold=iou_threshold)
+        tracker = Sort(max_age=10, iou_threshold=iou_threshold)
         # To collect processed frames for the video
         video_results = []
 

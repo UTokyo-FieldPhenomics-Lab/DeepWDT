@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 from PIL import Image
 
-from src.model import build_yowo_model, track
+from src.model import build_yowo_model, track, map_runs
 from src.utils import grouped_nms, thieve_confidence, visualize_inference_results
 from src.dataset import EvalTransform, find_closer_32k
 from src.config import load_configuration
@@ -42,6 +42,7 @@ def infer_function(path_configuration, run_path):
 
         # Load the video
         cap = cv2.VideoCapture(str(video_name))
+        framerate = cap.get(cv2.CAP_PROP_FPS)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -94,8 +95,6 @@ def infer_function(path_configuration, run_path):
             'y1': [bbox[3] for bbox in detection_bboxes],
             'confidence': detection_confidence
         })
-
-        # Ensure the right formats in the result dataframe
         df_results['frame_id'] = df_results['frame_id'].astype(int)
         df_results['class'] = df_results['class'].astype(int)
 
@@ -107,6 +106,7 @@ def infer_function(path_configuration, run_path):
         df_results = track(df_results,
                            iou_threshold=infer_configuration.track_iou_threshold,
                            duration_threshold=infer_configuration.track_duration_threshold)
+        df_results['run_id'] = df_results['run_id'].astype(int)
 
         # Convert relative coordinates to absolute coordinates
         if len(df_results) > 0:
@@ -114,8 +114,6 @@ def infer_function(path_configuration, run_path):
             df_results[['y0', 'y1']] = df_results[['y0', 'y1']] * height
 
         # Save and visualize results
-        visualize_inference_results(df_results, run_path)
-
-        # Translate dances to coordinates
-
-        # Map coordinates
+        save_folder = run_path / video_name.stem.split('_')[0]
+        visualize_inference_results(df_results, save_folder)
+        map_runs(df_results, save_folder, video_name, framerate)
