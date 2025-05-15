@@ -2,6 +2,8 @@
 
 This repository is the official implementation of DeepWDT (Deep Waggle Dance Translator), the most efficient and easy-to-use deep learning framework to detect and decode waggle dances.
 
+![Description](docs/example.gif)
+
 ## <div align="center">To-do</div>
 - [ ] Make a "quick start" google colab of the inference pipeline
 - [ ] Add the mapping translation part to the inference pipeline 
