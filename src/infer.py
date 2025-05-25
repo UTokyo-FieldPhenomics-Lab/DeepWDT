@@ -1,3 +1,5 @@
+import os
+from datetime import datetime
 from pathlib import Path
 from tqdm import tqdm
 
@@ -12,14 +14,20 @@ from src.dataset import EvalTransform, find_closer_32k
 from src.config import load_configuration
 
 
-def infer_function(path_configuration, run_path):
+def infer_function(path_configuration):
     infer_configuration = load_configuration(path_configuration).infer
     print("Arguments: ", infer_configuration)
     print('-----------------------------------------------------------------------------------------------------------')
 
+    # Define the run_path
+    run_name = f"{datetime.now().strftime('%y%m%d-%H%M%S')}-{infer_configuration.dataset.name}"
+    run_path = Path(f'runs/infer/{run_name}')
+    print(f'Results saved at name: {run_path}')
+    os.makedirs(run_path)
+
     # Get video names
     video_folder = Path('data') / infer_configuration.dataset.name / 'videos'
-    videos = [f for f in video_folder.iterdir() if f.suffix in ('.mp4', '.MOV')]
+    videos = [f for f in video_folder.iterdir() if f.suffix in ('.mp4', '.MOV', '.MP4')]
 
     # Instantiate the model
     print('Building the model...')
@@ -67,23 +75,28 @@ def infer_function(path_configuration, run_path):
         cap.release()
 
         # Build sliding window clips over the frames
-        for i in tqdm(range(infer_configuration.dataset.len_clip - 1, len(frames)), desc=f'Video {video_name}'):
-            # Prepare a clip
-            clip = frames[i - infer_configuration.dataset.len_clip + 1: i + 1]
-            clip_transformed, _ = transform(clip, None)
-            clip_tensor = torch.stack(clip_transformed, dim=1)
-            clip_tensor = clip_tensor.unsqueeze(0).to(device)
+        for i in tqdm(range(len(frames)-infer_configuration.dataset.len_clip), desc=f'Video {video_name}'):
+                # Prepare a clip
+                clip = frames[i:i+infer_configuration.dataset.len_clip]
+                clip_transformed, _ = transform(clip, None)
+                clip_tensor = torch.stack(clip_transformed, dim=1)
+                clip_tensor = clip_tensor.unsqueeze(0).to(device)
 
-            # Run inference on the clip
-            outputs = model(clip_tensor)
-            scores, labels, bboxes = outputs
+                # Run inference on the clip
+                outputs = model(clip_tensor)
+                scores, labels, bboxes = outputs
 
-            # Process detections for this clip
-            detection_bboxes.extend(bboxes[0][detection] for detection in range(len(scores[0])))
-            detection_frames.extend(i for k in range(len(scores[0])))
-            detection_confidence.extend(scores[0][detection] for detection in range(len(scores[0])))
-            detection_videonames.extend(str(video_name) for detection in range(len(scores[0])))
-            detection_classes.extend(int(labels[0][detection]) for detection in range(len(scores[0])))
+                # Process detections for this clip
+                if infer_configuration.dataset.centered_clip:
+                    key_frame_index = i + infer_configuration.dataset.len_clip // 2
+                else:
+                    key_frame_index = i + infer_configuration.dataset.len_clip - 1
+
+                detection_bboxes.extend(bboxes[0][detection] for detection in range(len(scores[0])))
+                detection_frames.extend(key_frame_index for k in range(len(scores[0])))
+                detection_confidence.extend(scores[0][detection] for detection in range(len(scores[0])))
+                detection_videonames.extend(str(video_name) for detection in range(len(scores[0])))
+                detection_classes.extend(int(labels[0][detection]) for detection in range(len(scores[0])))
 
         df_results = pd.DataFrame({
             'video': detection_videonames,
@@ -105,7 +118,8 @@ def infer_function(path_configuration, run_path):
         # Track dancing bees to produce runs
         df_results = track(df_results,
                            iou_threshold=infer_configuration.track_iou_threshold,
-                           duration_threshold=infer_configuration.track_duration_threshold)
+                           duration_threshold=infer_configuration.track_duration_threshold,
+                           max_age=infer_configuration.track_max_age)
         df_results['run_id'] = df_results['run_id'].astype(int)
 
         # Convert relative coordinates to absolute coordinates
@@ -115,5 +129,8 @@ def infer_function(path_configuration, run_path):
 
         # Save and visualize results
         save_folder = run_path / video_name.stem.split('_')[0]
+        if infer_configuration.cluster_dances:
+            pass
         visualize_inference_results(df_results, save_folder)
         map_runs(df_results, save_folder, video_name, framerate)
+        df_results.to_csv(save_folder / "results.csv")

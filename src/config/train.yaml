@@ -2,7 +2,7 @@ train:
   dataset:
     name: bengaluru_01
     image_size: [224]
-    len_clip: 5
+    len_clip: 8
     classes: ['Dancing']
     centered_clip: false
   model:
@@ -37,7 +37,7 @@ train:
   device: cuda
   max_epoch: 20
   mlflow: true
-  batch_size: 8
+  batch_size: 32
   num_workers: 8
   solver:
     accumulate: 1
@@ -59,15 +59,16 @@ eval:
   dataset:
     name: bengaluru_01
     image_size: [224]
-    len_clip: 5
+    len_clip: 8
     classes: ['Dancing']
     centered_clip: false
-  batch_size: 64
+  batch_size: 32
   num_workers: 8
   split: val
   confidence_threshold: 0.5
-  iou_threshold: 0.5
+  iou_threshold: 0.01
   nms_threshold: 0.5
   tracking_method: SORT
   track_iou_threshold: 0.3
-  track_duration_threshold: 15
+  track_duration_threshold: 10
+  track_max_age: 5

@@ -47,7 +47,7 @@ def make_video(detections, save_folder):
 
                 cv2.rectangle(frame, (x0, y0), (x1, y1), color, 1)
 
-                label = f"conf {round(detection['confidence'], 2)}"
+                label = f"id {run_id}, c. {round(detection['confidence'], 2)}"
                 banner_width = x0 + len(label) * 10
                 cv2.rectangle(frame, (x0, y0 - 30), (banner_width, y0), color, -1)
                 cv2.putText(frame, label, (x0, y0 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)

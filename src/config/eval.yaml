@@ -4,7 +4,7 @@ eval:
   dataset:
     name: bengaluru_01
     image_size: [224]
-    len_clip: 5
+    len_clip: 8
     classes: ['Dancing']
     centered_clip: false
   model:

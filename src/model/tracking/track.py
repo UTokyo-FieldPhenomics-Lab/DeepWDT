@@ -5,7 +5,7 @@ from .sort import Sort, iou_batch
 from .angles import get_angles
 
 
-def track(df, iou_threshold=0.3, duration_threshold=15):
+def track(df, iou_threshold=0.3, duration_threshold=15, max_age=5):
     """
     Produces a tube id for each detection by tracking detections in videos
     throughout frames using SORT.
@@ -30,7 +30,7 @@ def track(df, iou_threshold=0.3, duration_threshold=15):
         video_df = df[df['video'] == video_id].copy()
         video_df.sort_values(by='frame_id', inplace=True)
         # Initialize a SORT tracker for this video
-        tracker = Sort(max_age=10, iou_threshold=iou_threshold)
+        tracker = Sort(max_age=3, iou_threshold=iou_threshold)
         # To collect processed frames for the video
         video_results = []
 

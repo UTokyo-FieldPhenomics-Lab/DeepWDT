@@ -42,6 +42,7 @@ def unpack_labels(args):
     df_val = pd.read_csv(os.path.join('data', args.dataset, 'val.csv'))
     df_test = pd.read_csv(os.path.join('data', args.dataset, 'test.csv'))
     df = pd.concat([df_train, df_val, df_test], ignore_index=True)
+
     labels_dir = os.path.join('data', args.dataset, "labels/Dancing")
 
     if not os.path.exists(labels_dir):
@@ -66,7 +67,14 @@ def check_videos(args):
     check_dir = os.path.join('data', args.dataset, "check")
     if not os.path.exists(check_dir):
         os.makedirs(check_dir)
-    df = pd.read_csv(os.path.join('data', args.dataset, 'train.csv'))
+
+    # df = pd.read_csv(os.path.join('data', args.dataset, 'train.csv'))
+
+    df_train = pd.read_csv(os.path.join('data', args.dataset, 'train.csv'))
+    df_val = pd.read_csv(os.path.join('data', args.dataset, 'val.csv'))
+    df_test = pd.read_csv(os.path.join('data', args.dataset, 'test.csv'))
+    df = pd.concat([df_train, df_val, df_test], ignore_index=True)
+
     video_filenames = [f for f in os.listdir(os.path.join('data', args.dataset, 'videos')) if f.endswith(('.mp4', '.avi'))]
     for video_filename in video_filenames:
         video_name = os.path.splitext(video_filename)[0]

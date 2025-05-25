@@ -62,7 +62,7 @@ def runs_2_loc(detections, video_start_time, hive_coordinates, video_framerate):
         solar_azimuth = get_azimuth(hive_coordinates[0], hive_coordinates[1], group_start_time)
 
         # Calculate distance from duration
-        distance = distance_from_duration(frame_duration/video_framerate)
+        distance = distance_from_duration(frame_duration / video_framerate)
 
         # Calculate the target coordinates
         origin = Point(hive_coordinates[0], hive_coordinates[1])
@@ -70,10 +70,13 @@ def runs_2_loc(detections, video_start_time, hive_coordinates, video_framerate):
 
         points.append({
             'id': run_id,
-            'latitude': target_point.latitude,
-            'longitude': target_point.longitude,
-            'angle': solar_azimuth+math.degrees(angle),
-            'distance': distance,
+            'dance_angle': math.degrees(angle),
+            'solar_azimuth': solar_azimuth,
+            'dance_time': group_start_time,
+            'target_latitude': target_point.latitude,
+            'target_longitude': target_point.longitude,
+            'target_distance': distance,
+            'target_angle': solar_azimuth+math.degrees(angle),
             'geometry': ShapelyPoint(target_point.longitude, target_point.latitude)
         })
 
@@ -117,13 +120,13 @@ def make_folium_map(points, save_folder):
         hex_color = mcolors.rgb2hex(rgb)
 
         folium.CircleMarker(
-            location=(point['latitude'], point['longitude']),
+            location=(point['target_latitude'], point['target_longitude']),
             radius=5,
             color=hex_color,
             fill=True,
             fill_color=hex_color,
             fill_opacity=0.7,
-            popup=f"Run ID: {point['id']}, Distance: {point['distance']:.2f}m"
+            popup=f"Run ID: {point['id']}, Distance: {point['target_distance']:.2f}m"
         ).add_to(m)
 
     # Save the map as an HTML file

@@ -2,7 +2,6 @@ import argparse
 import os
 import random
 from datetime import datetime
-from pathlib import Path
 
 import petname
 
@@ -41,11 +40,6 @@ if __name__ == '__main__':
         eval_function(args.configuration)
 
     elif args.mode == 'infer':
-        # Define the experiment name
-        run_name = f"{datetime.now().strftime('%y%m%d-%H%M%S')}"
-        run_path = f'runs/infer/{run_name}'
-        print(f'Results saved at name: {run_path}')
-        os.makedirs(run_path)
 
         # Infer loop
-        infer_function(args.configuration, Path(run_path))
+        infer_function(args.configuration)

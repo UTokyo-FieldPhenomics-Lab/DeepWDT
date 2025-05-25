@@ -174,6 +174,8 @@ def train_function(run_name, path_configuration):
                     'args': configuration
                 },
                 checkpoint_path)
+
+            print('Computational time assessment...')
             print(f'[2D backbone mean inference time: {round(np.mean(model.benchmark_backbone2D[1:])*1000,2)}]'
                   f'[2D backbone stdv inference time: {round(np.std(model.benchmark_backbone2D[1:])*1000,2)}]')
             print(f'[3D backbone mean inference time: {round(np.mean(model.benchmark_backbone3D[1:])*1000,2)}]'

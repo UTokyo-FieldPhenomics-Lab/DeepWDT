@@ -41,7 +41,7 @@ As an example, the *Apis dorsata* training dataset can be downloaded at *link co
 
 To prepare it, copy the 'videos' folder and 'annotations.csv' into 'data/bengaluru_01' and launch the following command line:
 ```Shell
-python src/dataset/unpack.py 
+python src/dataset/unpack.py --dataset name_of_the_dataset
 ```
 
 Feel free to augment the dataset with your own data to improve the model's generalizability.
