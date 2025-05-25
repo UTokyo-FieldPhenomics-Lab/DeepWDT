@@ -85,6 +85,19 @@ python main.py --mode eval --configuration src/config/eval.yaml
 
 Don't forget to check that the configuration matches the one used when training the weights and to add the path to your trained weights at eval:model:resume in the yaml configuration file.
 
+### Results
+
+Our results on a dataset made of 253 videos of *Apis dorsata* and *Apis mellifera*:
+
+| clip orientation | clip size | detected runs (%) | angle rmse (rad) | duration rmse (frame) |
+|:----------------:|:---------:|:-----------------:|:----------------:|:---------------------:|
+|     backward     |     8     |        100        |       0.34       |         4.93          |
+|     backward     |    16     |        100        |       0.39       |         5.22          |
+|     centered     |     3     |       99.7        |       0.42       |         7.79          |
+|     centered     |     7     |        100        |       0.47       |         3.81          |
+|     centered     |    17     |        100        |       0.33       |         2.44          |
+
+
 ## <div align="center">Inference</div>
 
 ### Infer on a new dataset
