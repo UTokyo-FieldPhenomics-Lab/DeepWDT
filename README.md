@@ -6,8 +6,7 @@ This repository is the official implementation of DeepWDT (Deep Waggle Dance Tra
 
 ## <div align="center">To-do</div>
 - [ ] Make a "quick start" google colab of the inference pipeline
-- [ ] Add the mapping translation part to the inference pipeline 
-- [ ] Add a lightweight version of the deep learning model for quick inference
+- [ ] Add a lightweight version of the deep learning model for quicker inference
 
 ## <div align="center">Quick Start</div>
 
@@ -98,15 +97,20 @@ Our training dataset is made of videos taken at 30 fps, with a definition of 192
 
 Thus, if you use our weight, we suggest to use 30 fps 1920x1080 videos and a downscale_factor of 0.5.
 
+for each video in the infered dataset.
+
 ### Translation to geographic coordinates
 
 In order to properly translate dances to geographic targets, videos should be named as the following template: video-name_x_y_yyyy_mm_dd_hh_mm_ss.
 
-*Translation part will be added soon.*
+Results of the inference are saved to runs/infer as:
 
-### Use outputs from the model to augment the training dataset
+* an annotated video
+* a dataframe of the detections for each frame
+* a gpkg containing the colony and the translated target positions
+* a html map to visualize the translated targets
 
-*Coming soon.*
+Currently, the model used to translate durations to distances is from https://doi.org/10.1016/j.anbehav.2019.01.016.
 
 ## <div align="center">License</div>
 
