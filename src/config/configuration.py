@@ -111,6 +111,9 @@ class InferConfig:
     iou_threshold: float = 0.5
     track_iou_threshold: float = 0.3
     track_duration_threshold: int = 15
+    cluster_dances: bool = True
+    track_max_age: int = 5
+
 
 @dataclass
 class Config:

@@ -13,7 +13,7 @@ from src.utils.nms import multiclass_nms
 
 
 class YOWO(nn.Module):
-    def __init__(self, model_configuration, centered_clip, device, trainable, multi_hot = False):
+    def __init__(self, model_configuration, centered_clip, device, trainable):
         super().__init__()
 
         # Model configuration
@@ -24,7 +24,6 @@ class YOWO(nn.Module):
         self.conf_thresh = model_configuration.confidence_threshold
         self.nms_thresh = model_configuration.nms_threshold
         self.topk = model_configuration.top_k
-        self.multi_hot = multi_hot
         self.centered_clip = centered_clip
 
         # Benchmark metrics
@@ -194,61 +193,6 @@ class YOWO(nn.Module):
             scores, labels, bboxes, self.nms_thresh, self.num_classes, False)
 
         return scores, labels, bboxes
-    
-
-    def post_process_multi_hot(self, conf_preds, cls_preds, reg_preds, anchors):
-        """
-        Input:
-            cls_pred: (Tensor) [H x W, C]
-            reg_pred: (Tensor) [H x W, 4]
-        """        
-        all_conf_preds = []
-        all_cls_preds = []
-        all_box_preds = []
-        for level, (conf_pred_i, cls_pred_i, reg_pred_i, anchors_i) in enumerate(zip(conf_preds, cls_preds, reg_preds, anchors)):
-            # decode box
-            box_pred_i = self.decode_boxes(anchors_i, reg_pred_i, self.stride[level])
-            
-            # conf pred 
-            conf_pred_i = torch.sigmoid(conf_pred_i.squeeze(-1))   # [M,]
-
-            # cls_pred
-            cls_pred_i = torch.sigmoid(cls_pred_i)                 # [M, C]
-
-            # topk
-            topk_conf_pred_i, topk_inds = torch.topk(conf_pred_i, self.topk)
-            topk_cls_pred_i = cls_pred_i[topk_inds]
-            topk_box_pred_i = box_pred_i[topk_inds]
-
-            # threshold
-            keep = topk_conf_pred_i.gt(self.conf_thresh)
-            topk_conf_pred_i = topk_conf_pred_i[keep]
-            topk_cls_pred_i = topk_cls_pred_i[keep]
-            topk_box_pred_i = topk_box_pred_i[keep]
-
-            all_conf_preds.append(topk_conf_pred_i)
-            all_cls_preds.append(topk_cls_pred_i)
-            all_box_preds.append(topk_box_pred_i)
-
-        # concatenate
-        conf_preds = torch.cat(all_conf_preds, dim=0)  # [M,]
-        cls_preds = torch.cat(all_cls_preds, dim=0)    # [M, C]
-        box_preds = torch.cat(all_box_preds, dim=0)    # [M, 4]
-
-        # to cpu
-        scores = conf_preds.cpu().numpy()
-        labels = cls_preds.cpu().numpy()
-        bboxes = box_preds.cpu().numpy()
-
-        # nms
-        scores, labels, bboxes = multiclass_nms(
-            scores, labels, bboxes, self.nms_thresh, self.num_classes, True)
-
-        # [M, 5 + C]
-        out_boxes = np.concatenate([bboxes, scores[..., None], labels], axis=-1)
-
-        return out_boxes
-    
 
     @torch.no_grad()
     def inference_eval(self, video_clips):
@@ -346,60 +290,33 @@ class YOWO(nn.Module):
         self.benchmark_head.append(time.time() - start_time)
         
         # batch process
-        if self.multi_hot:
-            batch_bboxes = []
-            for batch_idx in range(video_clips.size(0)):
-                cur_conf_preds = []
-                cur_cls_preds = []
-                cur_reg_preds = []
-                for conf_preds, cls_preds, reg_preds in zip(all_conf_preds, all_cls_preds, all_reg_preds):
-                    # [B, M, C] -> [M, C]
-                    cur_conf_preds.append(conf_preds[batch_idx])
-                    cur_cls_preds.append(cls_preds[batch_idx])
-                    cur_reg_preds.append(reg_preds[batch_idx])
-
-                # post-process
-                out_boxes = self.post_process_multi_hot(
-                    cur_conf_preds, cur_cls_preds, cur_reg_preds, all_anchors)
-
-                # normalize bbox
-                # out_boxes[..., :4] /= max(img_h, img_w)
-                out_boxes[..., :[0, 2]] /= img_w
-                out_boxes[..., :[1, 3]] /= img_h
-                out_boxes[..., :4] = out_boxes[..., :4].clip(0., 1.)
-
-                batch_bboxes.append(out_boxes)
-
-            return batch_bboxes
-
-        else:
-            batch_scores = []
-            batch_labels = []
-            batch_bboxes = []
-            for batch_idx in range(conf_pred.size(0)):
+        batch_scores = []
+        batch_labels = []
+        batch_bboxes = []
+        for batch_idx in range(conf_pred.size(0)):
+            # [B, M, C] -> [M, C]
+            cur_conf_preds = []
+            cur_cls_preds = []
+            cur_reg_preds = []
+            for conf_preds, cls_preds, reg_preds in zip(all_conf_preds, all_cls_preds, all_reg_preds):
                 # [B, M, C] -> [M, C]
-                cur_conf_preds = []
-                cur_cls_preds = []
-                cur_reg_preds = []
-                for conf_preds, cls_preds, reg_preds in zip(all_conf_preds, all_cls_preds, all_reg_preds):
-                    # [B, M, C] -> [M, C]
-                    cur_conf_preds.append(conf_preds[batch_idx])
-                    cur_cls_preds.append(cls_preds[batch_idx])
-                    cur_reg_preds.append(reg_preds[batch_idx])
+                cur_conf_preds.append(conf_preds[batch_idx])
+                cur_cls_preds.append(cls_preds[batch_idx])
+                cur_reg_preds.append(reg_preds[batch_idx])
 
-                # post-process
-                scores, labels, bboxes = self.post_process_one_hot(
-                    cur_conf_preds, cur_cls_preds, cur_reg_preds, all_anchors)
+            # post-process
+            scores, labels, bboxes = self.post_process_one_hot(
+                cur_conf_preds, cur_cls_preds, cur_reg_preds, all_anchors)
 
-                # normalize bbox
-                # bboxes /= max(img_h, img_w)
-                bboxes[:, [0, 2]] /= img_w
-                bboxes[:, [1, 3]] /= img_h
-                bboxes = bboxes.clip(0., 1.)
+            # normalize bbox
+            # bboxes /= max(img_h, img_w)
+            bboxes[:, [0, 2]] /= img_w
+            bboxes[:, [1, 3]] /= img_h
+            bboxes = bboxes.clip(0., 1.)
 
-                batch_scores.append(scores)
-                batch_labels.append(labels)
-                batch_bboxes.append(bboxes)
+            batch_scores.append(scores)
+            batch_labels.append(labels)
+            batch_bboxes.append(bboxes)
 
         return batch_scores, batch_labels, batch_bboxes
 

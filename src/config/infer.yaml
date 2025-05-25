@@ -2,7 +2,7 @@ infer:
   dataset:
     name: test_01
     image_size: [224]
-    len_clip: 5
+    len_clip: 8
     classes: ['Dancing']
     centered_clip: false
   model:
@@ -18,7 +18,7 @@ infer:
       pretrained: true
       memory_momentum: 0.9
       model_size: "1.0x"
-    resume:
+    resume: # path to the trained weights
     center_sampling_radius: 2.5
     confidence_threshold: 0.01
     nms_threshold: 0.3
@@ -32,8 +32,9 @@ infer:
   device: cuda
   batch_size: 64
   num_workers: 8
-  downscale_factor: 1
-  confidence_threshold: 0.1
+  downscale_factor: 0.5
+  confidence_threshold: 0.8
   nms_threshold: 0.3
   track_iou_threshold: 0.3
-  track_duration_threshold: 15
+  track_duration_threshold: 30
+  cluster_dances: true # not implemented yet
