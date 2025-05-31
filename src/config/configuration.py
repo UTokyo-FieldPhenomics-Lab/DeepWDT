@@ -97,6 +97,8 @@ class EvalConfig:
     iou_threshold: float = 0.5
     track_iou_threshold: float = 0.3
     track_duration_threshold: int = 15
+    track_max_age: int = 3
+    duration_measurement_method: str = range
 
 @dataclass
 class InferConfig:
@@ -113,6 +115,7 @@ class InferConfig:
     track_duration_threshold: int = 15
     cluster_dances: bool = True
     track_max_age: int = 5
+    duration_measurement_method: str = range # or count
 
 
 @dataclass

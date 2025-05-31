@@ -133,7 +133,10 @@ def match_durations(detections, gt_tubes, matches, cf=0):
         frames_det = list(detections[(detections['video'] == video) & (detections['run_id'] == id_det)]['frame_id'])
 
         durations[0].append(len(frames_gt))
-        durations[1].append(len(frames_det) + cf)
+
+        set_gt = set(frames_gt)
+        set_dt = set(frames_det)
+        durations[1].append(len(set_gt.intersection(set_dt)) + cf)
 
     return durations
 

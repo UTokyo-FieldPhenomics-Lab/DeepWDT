@@ -1,6 +1,6 @@
 train:
   dataset:
-    name: bengaluru_01
+    name: bengaluru_01_ginza_01
     image_size: [224]
     len_clip: 8
     classes: ['Dancing']
@@ -72,3 +72,5 @@ eval:
   track_iou_threshold: 0.3
   track_duration_threshold: 10
   track_max_age: 5
+  duration_measurement_method: range
+

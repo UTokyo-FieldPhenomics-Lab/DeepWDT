@@ -23,6 +23,7 @@ class DecoupledHead(nn.Module):
                    norm_type=self.norm_type,
                    depthwise=self.depthwise)
                    for _ in range(self.num_cls_heads)])
+
         self.reg_head = nn.Sequential(*[
             Conv2d(self.head_dim, 
                    self.head_dim, 

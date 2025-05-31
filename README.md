@@ -125,6 +125,8 @@ Results of the inference are saved to runs/infer as:
 
 Currently, the model used to translate durations to distances is from https://doi.org/10.1016/j.anbehav.2019.01.016.
 
+Parameters are ...
+
 ## <div align="center">License</div>
 
 Our software is released under the MIT license.

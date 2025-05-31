@@ -25,7 +25,7 @@ def distance_from_duration(duration):
     return distance
 
 
-def runs_2_loc(detections, video_start_time, hive_coordinates, video_framerate):
+def runs_2_loc(detections, video_start_time, hive_coordinates, video_framerate, duration_measurement_method):
 
     # Initialize the TimezoneFinder
     tf = TimezoneFinder()
@@ -41,9 +41,7 @@ def runs_2_loc(detections, video_start_time, hive_coordinates, video_framerate):
         'id': 'colony',
         'latitude': hive_coordinates[0],
         'longitude': hive_coordinates[1],
-        'angle': None,
-        'distance': 0,
-        'geometry': ShapelyPoint(hive_coordinates[0], hive_coordinates[1])
+        'geometry': ShapelyPoint(hive_coordinates[1], hive_coordinates[0])
     })
 
     grouped_by_run = detections.groupby('run_id')
@@ -52,7 +50,10 @@ def runs_2_loc(detections, video_start_time, hive_coordinates, video_framerate):
         first_row = run_detections.iloc[0]
         frame_id = first_row['frame_id']
         angle = first_row['angle']
-        frame_duration = len(run_detections)
+        if duration_measurement_method == 'range':
+            frame_duration = run_detections['frame_id'].max() - run_detections['frame_id'].min()
+        elif duration_measurement_method == 'count':
+            frame_duration = len(run_detections)
 
         # Calculate actual group start time
         frame_offset = frame_id / video_framerate
@@ -73,8 +74,8 @@ def runs_2_loc(detections, video_start_time, hive_coordinates, video_framerate):
             'dance_angle': math.degrees(angle),
             'solar_azimuth': solar_azimuth,
             'dance_time': group_start_time,
-            'target_latitude': target_point.latitude,
-            'target_longitude': target_point.longitude,
+            'latitude': target_point.latitude,
+            'longitude': target_point.longitude,
             'target_distance': distance,
             'target_angle': solar_azimuth+math.degrees(angle),
             'geometry': ShapelyPoint(target_point.longitude, target_point.latitude)
@@ -120,7 +121,7 @@ def make_folium_map(points, save_folder):
         hex_color = mcolors.rgb2hex(rgb)
 
         folium.CircleMarker(
-            location=(point['target_latitude'], point['target_longitude']),
+            location=(point['latitude'], point['longitude']),
             radius=5,
             color=hex_color,
             fill=True,
@@ -134,7 +135,7 @@ def make_folium_map(points, save_folder):
     m.save(map_path)
 
 
-def map_runs(detections, save_folder, video_name, framerate):
+def map_runs(detections, save_folder, video_name, framerate, duration_measurement_method):
     parts = str(video_name.stem).split('_')
     hive_y, hive_x = float(parts[1]), float(parts[2])
     date_str = "_".join(parts[3:6])
@@ -142,6 +143,6 @@ def map_runs(detections, save_folder, video_name, framerate):
     datetime_str = f"{date_str}_{time_str}"
     video_start_time = datetime.strptime(datetime_str, "%Y_%m_%d_%H_%M_%S")
 
-    points = runs_2_loc(detections, video_start_time, (hive_y, hive_x), framerate)
+    points = runs_2_loc(detections, video_start_time, (hive_y, hive_x), framerate, duration_measurement_method)
 
     make_folium_map(points, save_folder)

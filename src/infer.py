@@ -129,8 +129,6 @@ def infer_function(path_configuration):
 
         # Save and visualize results
         save_folder = run_path / video_name.stem.split('_')[0]
-        if infer_configuration.cluster_dances:
-            pass
         visualize_inference_results(df_results, save_folder)
-        map_runs(df_results, save_folder, video_name, framerate)
-        df_results.to_csv(save_folder / "results.csv")
+        # map_runs(df_results, save_folder, video_name, framerate, infer_configuration.duration_measurement_method)
+        df_results.to_csv(save_folder / "results.csv", index=False)
