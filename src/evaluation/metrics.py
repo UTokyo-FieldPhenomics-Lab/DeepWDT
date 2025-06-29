@@ -2,7 +2,8 @@ import math
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_squared_error
+from scipy.stats import pearsonr
+from sklearn.metrics import mean_squared_error, r2_score
 
 
 def compute_iou(boxA, boxB):
@@ -147,17 +148,55 @@ def get_metrics(detections, gt_tubes):
     angles = match_angles(detections, gt_tubes, matches)
     if not angles[0]:
         angle_rmse = -1
+        angle_r2 = -1
     else:
         angle_rmse = np.sqrt(mean_squared_error(angles[0], angles[1]))
+        angle_r2 = r2_score(angles[0], angles[1]) # (ground truth, detected)
 
     durations = match_durations(detections, gt_tubes, matches)
     if not durations[0]:
         duration_rmse = -1
+        mean_duration_error = -1
+        stdv_duration_error = -1
+        r_value_duration_pearson = -1
+        p_value_duration_pearson = -1
+        duration_r2 = -1
     else:
         duration_rmse = np.sqrt(mean_squared_error(durations[0], durations[1]))
+        duration_errors = [a - b for a, b in zip(durations[0], durations[1])]
+        mean_duration_error = np.mean(duration_errors)
+        stdv_duration_error = np.std(duration_errors)
+        r_value_duration_pearson, p_value_duration_pearson = pearsonr(durations[0], duration_errors)
+        duration_r2 = r2_score(durations[0], durations[1])  # (ground truth, detected)
 
+    # Percentage of detected runs (is equal to recall)
     detected_runs = (len(matches) / gt_tubes.groupby(['video', 'run_id']).ngroups) * 100
 
-    return {'angle_rmse': round(angle_rmse, 2),
-            'duration_rmse': round(duration_rmse, 2),
-            'detected_runs': round(detected_runs, 1)}
+    # Precision and recall
+    nb_detections = detections.groupby(['video', 'run_id']).ngroups
+    nb_gt = gt_tubes.groupby(['video', 'run_id']).ngroups
+    true_positives = len(matches)
+    false_positives = nb_detections - true_positives
+    false_negatives = nb_gt - true_positives
+    precision = true_positives / (true_positives + false_positives)
+    recall = true_positives / (true_positives + false_negatives)
+
+    # Number of detected runs per dance
+    dance_groups_det = matches.groupby(matches['video'].str[:-3])['gt_run_id'].nunique().to_dict()
+    dance_groups_gt = gt_tubes.groupby(gt_tubes['video'].str[:-3])['run_id'].nunique().to_dict()
+    nb_detected_runs_per_dance = np.mean([dance_groups_det.get(dance, 0) / count for dance, count in dance_groups_gt.items()])
+
+    return ({'angle_rmse': round(angle_rmse, 2),
+             'duration_rmse': round(duration_rmse, 2),
+             'mean_duration_error': round(mean_duration_error, 2),
+             'stdv_duration_error': round(stdv_duration_error, 2),
+             'detected_runs': round(detected_runs, 1),
+             'r_value_duration_pearson': round(r_value_duration_pearson, 2),
+             'p_value_duration_pearson': round(p_value_duration_pearson, 2),
+             'angle_r2': round(angle_r2, 2),
+             'duration_r2': round(duration_r2, 2),
+             'precision': round(precision,2),
+             'recall': round(recall, 2),
+             'nb_detected_runs_per_dance': round(nb_detected_runs_per_dance, 2)},
+            angles,
+            durations)
