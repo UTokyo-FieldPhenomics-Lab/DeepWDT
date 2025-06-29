@@ -1,10 +1,10 @@
 infer:
   dataset:
-    name: bengaluru_01_ginza_01
+    name: ?
     image_size: [224]
-    len_clip: 17
+    len_clip: 8
     classes: ['Dancing']
-    centered_clip: true
+    centered_clip: false
   model:
     name: 'yowo'
     backbone_2d:
@@ -18,7 +18,7 @@ infer:
       pretrained: true
       memory_momentum: 0.9
       model_size: "1.0x"
-    resume: C:\Users\CREST\Documents\GitHub\DeepWDT\runs\train\250522-073237-wired-sole-2280\weights\epoch_20.pth
+    resume:
     center_sampling_radius: 2.5
     confidence_threshold: 0.01
     nms_threshold: 0.3
