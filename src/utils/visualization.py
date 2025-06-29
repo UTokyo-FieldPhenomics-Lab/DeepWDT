@@ -4,12 +4,13 @@ import numpy as np
 import random
 from pathlib import Path
 
+import plotly.graph_objects as go
+
 
 def make_video(detections, save_folder):
     grouped = detections.groupby('video')
 
     for video_name, video_detections in grouped:
-        os.makedirs(save_folder, exist_ok=True)
         output_video_path = (Path(save_folder) / Path(video_name).name.split('_')[0]).with_suffix(Path(video_name).suffix)
         input_video_path = os.path.join(video_name)
         cap = cv2.VideoCapture(input_video_path)
@@ -67,11 +68,6 @@ def make_video(detections, save_folder):
         video_writer.release()
 
 
-
-def make_static_graph():
-    pass
-
-
 def visualize_inference_results(detections, save_folder):
     """
     Visualize and save videos with overlayed detection results.
@@ -80,4 +76,135 @@ def visualize_inference_results(detections, save_folder):
         detections (pandas.DataFrame): DataFrame with columns: [video, frame_id, run_id, class, x0, y0, x1, y1, confidence].
         save_folder (str): Directory used to save visualizations.
     """
+    os.makedirs(save_folder, exist_ok=True)
     make_video(detections, save_folder)
+
+
+def visualize_evaluation_results(angles: list,
+                           durations: list,
+                           path_graphs_gtvsp_angles: Path,
+                           path_graphs_gtvsp_durations: Path,
+                           path_graphs_duration_error_vs_duration: Path,
+                                 angle_r2,
+                                 duration_r2
+                                 ):
+    """
+    Makes evaluation graphs using Plotly.
+
+    Args:
+        angles (List): List of two lists, [ground_truth_angles, measured_angles].
+        durations (List): List of two lists, [ground_truth_durations, measured_durations].
+        path_graphs_gtvsp_angles (Path): Path to save a graph with y=ground truth angles and x=measured angles.
+        path_graphs_gtvsp_durations (Path): Path to save a graph with y=ground truth durations and x=measured durations.
+        path_graphs_duration_error_vs_duration (Path): Path to save a graph with duration errors (diff gt-measured) as y and gt durations as x.
+    """
+    gt_angles, measured_angles = angles
+    gt_durations, measured_durations = durations
+
+    # Graph 1: Ground truth vs measured Angles
+    fig_angles = go.Figure()
+    fig_angles.add_trace(go.Scatter(
+        x=measured_angles,
+        y=gt_angles,
+        mode='markers',
+        marker=dict(color='#0e004f'),
+        name=f'Angles (R²={angle_r2:.3f})'
+    ))
+    fig_angles.add_trace(go.Scatter(
+        x=gt_angles,
+        y=gt_angles,
+        mode='lines',
+        line=dict(color='#9b050c'),
+        name='Identity line'
+    ))
+    fig_angles.update_layout(
+        title='',
+        xaxis_title='Predicted angles',
+        yaxis_title='Ground truth angles',
+        plot_bgcolor='white',
+        xaxis=dict(
+            showgrid=True,
+            gridcolor='lightgray',
+            linecolor='black',
+            linewidth=1,
+            mirror=True
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor='lightgray',
+            linecolor='black',
+            linewidth=1,
+            mirror=True
+        ),
+    )
+    fig_angles.write_image(str(path_graphs_gtvsp_angles))
+
+    # Graph 2: Ground Truth vs Measured Durations
+    fig_durations = go.Figure()
+    fig_durations.add_trace(go.Scatter(
+        x=measured_durations,
+        y=gt_durations,
+        mode='markers',
+        marker=dict(color='#0e004f'),
+        name=f'Durations (R²={duration_r2:.3f})'
+    ))
+    fig_durations.add_trace(go.Scatter(
+        x=gt_durations,
+        y=gt_durations,
+        mode='lines',
+        line=dict(color='#9b050c'),
+        name='Identity line'
+    ))
+    fig_durations.update_layout(
+        title='',
+        xaxis_title='Predicted durations',
+        yaxis_title='Ground truth durations',
+        plot_bgcolor='white',
+        xaxis=dict(
+            showgrid=True,
+            gridcolor='lightgray',
+            linecolor='black',
+            linewidth=1,
+            mirror=True
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor='lightgray',
+            linecolor='black',
+            linewidth=1,
+            mirror=True
+        ),
+    )
+    fig_durations.write_image(str(path_graphs_gtvsp_durations))
+
+    # Graph 3: Duration Error vs Ground Truth Durations
+    duration_errors = [gt - m for gt, m in zip(gt_durations, measured_durations)]
+    fig_error = go.Figure()
+    fig_error.add_trace(go.Scatter(
+        x=gt_durations,
+        y=duration_errors,
+        mode='markers',
+        marker=dict(color='#0e004f'),
+        name='Duration errors'
+    ))
+    fig_error.update_layout(
+        title='',
+        xaxis_title='Ground truth durations',
+        yaxis_title='Duration errors',
+        plot_bgcolor='white',
+        xaxis=dict(
+            showgrid=True,
+            gridcolor='lightgray',
+            linecolor='black',
+            linewidth=1,
+            mirror=True
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor='lightgray',
+            linecolor='black',
+            linewidth=1,
+            mirror=True
+        ),
+    )
+    fig_error.write_image(str(path_graphs_duration_error_vs_duration))

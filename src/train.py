@@ -1,5 +1,6 @@
 import os
 import time
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -10,7 +11,7 @@ from src.dataset import build_dataset, CollateFunction, TrainTransform, EvalTran
 from src.evaluation import get_metrics
 from src.model import build_yowo_model, track
 from src.solver import build_loss, build_optimizer, get_lr_scheduler, set_optimizer_lr
-from src.utils import distributed_utils, thieve_confidence, grouped_nms, NoOpMLflow, print_log
+from src.utils import distributed_utils, thieve_confidence, grouped_nms, NoOpMLflow, print_log, visualize_evaluation_results
 from src.config import load_configuration
 
 
@@ -233,15 +234,58 @@ def train_function(run_name, path_configuration):
             # Compute evaluation metrics
             print('3. Computing evaluation metrics...')
             if len(detections) == 0:
-                eval_metrics = {'angle_rmse': -1, 'duration_rmse': -1, 'detected_runs': 0}
+                eval_metrics = {'angle_rmse': -1,
+                                'duration_rmse': -1,
+                                'detected_runs': 0,
+                                'mean_duration_error': -1,
+                                'stdv_duration_error': -1,
+                                'r_value_duration_pearson': -1,
+                                'p_value_duration_pearson': -1,
+                                'angle_r2': -1,
+                                'duration_r2': -1,
+                                'precision': -1,
+                                'recall': -1,
+                                'nb_detected_runs_per_dance': -1}
+                print(f'[Detected runs: 0%]')
+
             else:
-                detections[['x0', 'x1', 'y0', 'y1']] = detections[['x0', 'x1', 'y0', 'y1']] * 224
-                eval_metrics = get_metrics(detections, validation_dataset.df)
+                detections[['x0', 'x1', 'y0', 'y1']] = detections[['x0', 'x1', 'y0', 'y1']] * train_configuration.dataset.image_size[0]
+                eval_metrics, angles, durations = get_metrics(detections, validation_dataset.df)
+
+                # Save graphs
+                path_graphs = Path(f'runs/train/{run_name}/graphs')
+                os.makedirs(path_graphs, exist_ok=True)
+
+                path_graphs_gtvsp_angles = path_graphs / f'gt_vs_predicted_angles_e{epoch+1}.png'
+                path_graphs_gtvsp_durations = path_graphs / f'gt_vs_predicted_durations_e{epoch+1}.png'
+                path_graphs_duration_error_vs_duration = path_graphs / f'duration_errors_vs_durations_e{epoch+1}.png'
+
+                visualize_evaluation_results(angles,
+                                             durations,
+                                             path_graphs_gtvsp_angles,
+                                             path_graphs_gtvsp_durations,
+                                             path_graphs_duration_error_vs_duration,
+                                             eval_metrics['angle_r2'],
+                                             eval_metrics['duration_r2'])
+
                 print(f'[Detected runs: {eval_metrics["detected_runs"]}%][Angle RMSE: {eval_metrics["angle_rmse"]}][Duration RMSE: {eval_metrics["duration_rmse"]}]')
 
             # Log evaluation metrics
             mlflow.log_metric('angle_rmse', eval_metrics['angle_rmse'], step=epoch)
             mlflow.log_metric('duration_rmse', eval_metrics['duration_rmse'], step=epoch)
             mlflow.log_metric('detected_runs', eval_metrics['detected_runs'], step=epoch)
+            mlflow.log_metric('mean_duration_error', eval_metrics['mean_duration_error'], step=epoch)
+            mlflow.log_metric('stdv_duration_error', eval_metrics['stdv_duration_error'], step=epoch)
+            mlflow.log_metric('r_value_duration_pearson', eval_metrics['r_value_duration_pearson'], step=epoch)
+            mlflow.log_metric('p_value_duration_pearson', eval_metrics['p_value_duration_pearson'], step=epoch)
+            mlflow.log_metric('angle_r2', eval_metrics['angle_r2'], step=epoch)
+            mlflow.log_metric('duration_r2', eval_metrics['duration_r2'], step=epoch)
+            mlflow.log_metric('precision', eval_metrics['precision'], step=epoch)
+            mlflow.log_metric('recall', eval_metrics['recall'], step=epoch)
+            mlflow.log_metric('nb_detected_runs_per_dance', eval_metrics['nb_detected_runs_per_dance'], step=epoch)
+
             model.train()
             model.trainable = True
+
+
+

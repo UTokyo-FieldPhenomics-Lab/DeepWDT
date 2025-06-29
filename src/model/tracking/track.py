@@ -72,6 +72,8 @@ def track(df, iou_threshold=0.3, duration_threshold=15, max_age=5):
 
     df_results = get_angles(df_results)
 
+    df_results['run_id'] = df_results['run_id'].astype(int)
+
     return df_results
 
 

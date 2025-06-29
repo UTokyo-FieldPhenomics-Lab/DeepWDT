@@ -43,6 +43,7 @@ class WaggleDanceDataset(Dataset):
     def __getitem__(self, index):
 
         frame = self.frame_list[index].split('/')
+
         video, image = frame[0], frame[1]
 
         image_id = int(image[:-4])
@@ -113,6 +114,7 @@ class WaggleDanceDataset(Dataset):
         return video_clip
 
     def _pull_clip_centered(self, image_id, video, max_num):
+
         video_clip = []
 
         half_len_clip = int(self.len_clip / 2)

@@ -1,11 +1,13 @@
+import os
 import pandas as pd
 import torch
+from pathlib import Path
 from tqdm import tqdm
 
 from src.dataset import build_dataset, CollateFunction, EvalTransform
 from src.evaluation import get_metrics
 from src.model import build_yowo_model, track
-from src.utils import thieve_confidence, grouped_nms
+from src.utils import thieve_confidence, grouped_nms, visualize_evaluation_results
 from src.config import load_configuration
 
 
@@ -38,10 +40,14 @@ def eval_function(path_configuration):
     # Instantiate the model
     print('Building the model...')
     device = eval_configuration.device
-    model = build_yowo_model(model_configuration=eval_configuration.model, device=device, trainable=True)
+    model = build_yowo_model(model_configuration=eval_configuration.model,
+                             device=device,
+                             trainable=True,
+                             centered_clip=eval_configuration.dataset.centered_clip)
     checkpoint_path = torch.load(eval_configuration.weights, map_location='cpu').pop("model")
     model.load_state_dict(checkpoint_path)
     model = model.to(device).eval()
+
     model.trainable = False
     print('Model built!')
 
@@ -87,13 +93,43 @@ def eval_function(path_configuration):
 
     # Track dancing bees through frames
     print('2. Tracking dancing bees...')
-    detections = track(detections)
+    detections = track(detections,
+                       iou_threshold=eval_configuration.track_iou_threshold,
+                       duration_threshold=eval_configuration.track_duration_threshold)
 
     # Compute evaluation metrics
     print('3. Computing evaluation metrics...')
     if len(detections) == 0:
         print(f'[Detected runs: 0%]')
     else:
-        detections[['x0', 'x1', 'y0', 'y1']] = detections[['x0', 'x1', 'y0', 'y1']] * 224
-        eval_metrics = get_metrics(detections, validation_dataset.df)
-        print(f'[Detected runs: {eval_metrics["detected_runs"]}%][Angle RMSE: {eval_metrics["angle_rmse"]}][Duration RMSE: {eval_metrics["duration_rmse"]}]')
+        detections[['x0', 'x1', 'y0', 'y1']] = detections[['x0', 'x1', 'y0', 'y1']] * eval_configuration.dataset.image_size[0]
+        eval_metrics, angles, durations = get_metrics(detections, validation_dataset.df)
+
+        # Print metrics
+        print(
+            f'[Detected runs: {eval_metrics["detected_runs"]}%][Angle RMSE: {eval_metrics["angle_rmse"]}][Duration RMSE: {eval_metrics["duration_rmse"]}]')
+        print(f'Angle R²: {eval_metrics["angle_r2"]:.3f}')
+        print(f'Duration R²: {eval_metrics["duration_r2"]:.3f}')
+        print(f'Precision: {eval_metrics["precision"]:.3f}')
+        print(f'Recall: {eval_metrics["recall"]:.3f}')
+        print(f'Mean duration error: {eval_metrics["mean_duration_error"]:.3f}')
+        print(f'Std duration error: {eval_metrics["stdv_duration_error"]:.3f}')
+        print(
+            f'Pearson correlation (duration): {eval_metrics["r_value_duration_pearson"]:.3f} (p={eval_metrics["p_value_duration_pearson"]:.3f})')
+        print(f'Detected runs per dance: {eval_metrics["nb_detected_runs_per_dance"]:.3f}')
+
+        # Save graphs
+        weights_path = Path(eval_configuration.weights)
+        run_name = weights_path.parent.name if weights_path.parent.name != 'weights' else weights_path.parent.parent.name
+        path_graphs = Path(f'runs/eval/{run_name}/graphs')
+        os.makedirs(path_graphs, exist_ok=True)
+        path_graphs_gtvsp_angles = path_graphs / 'gt_vs_predicted_angles.png'
+        path_graphs_gtvsp_durations = path_graphs / 'gt_vs_predicted_durations.png'
+        path_graphs_duration_error_vs_duration = path_graphs / 'duration_errors_vs_durations.png'
+        visualize_evaluation_results(angles,
+                                     durations,
+                                     path_graphs_gtvsp_angles,
+                                     path_graphs_gtvsp_durations,
+                                     path_graphs_duration_error_vs_duration,
+                                     eval_metrics['angle_r2'],
+                                     eval_metrics['duration_r2'])
