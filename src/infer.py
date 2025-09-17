@@ -8,8 +8,8 @@ import pandas as pd
 import torch
 from PIL import Image
 
-from src.model import build_yowo_model, track, map_runs
-from src.utils import grouped_nms, thieve_confidence, visualize_inference_results
+from src.model import build_yowo_model, track
+from src.utils import grouped_nms, thieve_confidence, make_inference_video
 from src.dataset import EvalTransform, find_closer_32k
 from src.config import load_configuration
 
@@ -22,8 +22,8 @@ def infer_function(path_configuration):
     # Define the run_path
     run_name = f"{datetime.now().strftime('%y%m%d-%H%M%S')}-{infer_configuration.dataset.name}"
     run_path = Path(f'runs/infer/{run_name}')
-    print(f'Results saved at name: {run_path}')
-    os.makedirs(run_path)
+    os.makedirs(run_path / 'videos')
+    os.makedirs(run_path / 'runs')
 
     # Get video names
     video_folder = Path('data') / infer_configuration.dataset.name / 'videos'
@@ -128,7 +128,5 @@ def infer_function(path_configuration):
             df_results[['y0', 'y1']] = df_results[['y0', 'y1']] * height
 
         # Save and visualize results
-        save_folder = run_path / video_name.stem.split('_')[0]
-        visualize_inference_results(df_results, save_folder)
-        # map_runs(df_results, save_folder, video_name, framerate, infer_configuration.duration_measurement_method)
-        df_results.to_csv(save_folder / "results.csv", index=False)
+        make_inference_video(df_results, run_path / 'videos')
+        df_results.to_csv(run_path / 'runs' / f"{video_name.stem}.csv", index=False)

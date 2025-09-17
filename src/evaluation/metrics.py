@@ -142,7 +142,7 @@ def match_durations(detections, gt_tubes, matches, cf=0):
     return durations
 
 
-def get_metrics(detections, gt_tubes):
+def get_metrics(gt_tubes, detections, cf):
     matches = match_gt_det(detections, gt_tubes)
 
     angles = match_angles(detections, gt_tubes, matches)
@@ -153,7 +153,7 @@ def get_metrics(detections, gt_tubes):
         angle_rmse = np.sqrt(mean_squared_error(angles[0], angles[1]))
         angle_r2 = r2_score(angles[0], angles[1]) # (ground truth, detected)
 
-    durations = match_durations(detections, gt_tubes, matches)
+    durations = match_durations(detections, gt_tubes, matches, cf=cf)
     if not durations[0]:
         duration_rmse = -1
         mean_duration_error = -1
@@ -199,4 +199,5 @@ def get_metrics(detections, gt_tubes):
              'recall': round(recall, 2),
              'nb_detected_runs_per_dance': round(nb_detected_runs_per_dance, 2)},
             angles,
-            durations)
+            durations,
+            matches)

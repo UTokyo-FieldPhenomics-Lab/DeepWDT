@@ -1,6 +1,6 @@
 infer:
   dataset:
-    name:
+    name: paper_inference
     image_size: [224]
     len_clip: 32
     classes: ['Dancing']
@@ -18,7 +18,8 @@ infer:
       pretrained: true
       memory_momentum: 0.9
       model_size: "1.0x"
-    resume:
+#    resume: C:\Users\CREST\Documents\GitHub\DeepWDT\runs\train\250709-182141-rested-troll-5437\weights\epoch_20.pth
+    resume: C:\Users\CREST\Documents\GitHub\DeepWDT\runs\train\250701-231200-fit-cattle-5645\weights\epoch_20.pth
     center_sampling_radius: 2.5
     confidence_threshold: 0.01
     nms_threshold: 0.3

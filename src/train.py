@@ -11,7 +11,7 @@ from src.dataset import build_dataset, CollateFunction, TrainTransform, EvalTran
 from src.evaluation import get_metrics
 from src.model import build_yowo_model, track
 from src.solver import build_loss, build_optimizer, get_lr_scheduler, set_optimizer_lr
-from src.utils import distributed_utils, thieve_confidence, grouped_nms, NoOpMLflow, print_log, visualize_evaluation_results
+from src.utils import distributed_utils, thieve_confidence, grouped_nms, NoOpMLflow, print_log, make_evaluation_graphs
 from src.config import load_configuration
 
 
@@ -250,7 +250,7 @@ def train_function(run_name, path_configuration):
 
             else:
                 detections[['x0', 'x1', 'y0', 'y1']] = detections[['x0', 'x1', 'y0', 'y1']] * train_configuration.dataset.image_size[0]
-                eval_metrics, angles, durations = get_metrics(detections, validation_dataset.df)
+                eval_metrics, angles, durations, _ = get_metrics(validation_dataset.df, detections, 0)
 
                 # Save graphs
                 path_graphs = Path(f'runs/train/{run_name}/graphs')
@@ -260,7 +260,7 @@ def train_function(run_name, path_configuration):
                 path_graphs_gtvsp_durations = path_graphs / f'gt_vs_predicted_durations_e{epoch+1}.png'
                 path_graphs_duration_error_vs_duration = path_graphs / f'duration_errors_vs_durations_e{epoch+1}.png'
 
-                visualize_evaluation_results(angles,
+                make_evaluation_graphs(angles,
                                              durations,
                                              path_graphs_gtvsp_angles,
                                              path_graphs_gtvsp_durations,

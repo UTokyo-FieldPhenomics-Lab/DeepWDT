@@ -8,6 +8,7 @@ import petname
 from src.infer import infer_function
 from src.train import train_function
 from src.eval import eval_function
+from src.map import mapping_function
 
 
 def parse_args():
@@ -15,7 +16,7 @@ def parse_args():
 
     parser.add_argument('--configuration', type=str, required=True)
 
-    parser.add_argument('--mode', type=str, required=True, choices=['train', 'eval', 'infer'])
+    parser.add_argument('--mode', type=str, required=True, choices=['train', 'eval', 'infer', 'map'])
 
     return parser.parse_args()
 
@@ -36,6 +37,7 @@ if __name__ == '__main__':
         train_function(run_name, args.configuration)
 
     elif args.mode == 'eval':
+
         # Eval loop
         eval_function(args.configuration)
 
@@ -43,3 +45,7 @@ if __name__ == '__main__':
 
         # Infer loop
         infer_function(args.configuration)
+
+    elif args.mode == 'map':
+
+        mapping_function(args.configuration)

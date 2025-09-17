@@ -1,4 +1,6 @@
-infer:
+eval:
+  device: cuda
+  weights:
   dataset:
     name:
     image_size: [224]
@@ -8,7 +10,7 @@ infer:
   model:
     name: 'yowo'
     backbone_2d:
-      name: 'yolo_free_nano'
+      name: 'yolo_free_tiny'
       frozen: false
       pretrained: true
       stride: [8, 16, 32]
@@ -17,8 +19,7 @@ infer:
       frozen: false
       pretrained: true
       memory_momentum: 0.9
-      model_size: "1.0x"
-    resume:
+      model_size: "2.0x"
     center_sampling_radius: 2.5
     confidence_threshold: 0.01
     nms_threshold: 0.3
@@ -28,14 +29,16 @@ infer:
     head_act: lrelu
     num_cls_heads: 2
     num_reg_heads: 2
-    head_depthwise: true
-  device: cuda
-  batch_size: 64
+    head_depthwise: false
+  batch_size: 32
   num_workers: 8
-  downscale_factor: 0.5
-  confidence_threshold: 0.8
+  split: val
+  confidence_threshold: 0.5
+  iou_threshold: 0.5
   nms_threshold: 0.5
+  tracking_method: SORT
   track_iou_threshold: 0.5
   track_duration_threshold: 10
   track_max_age: 5
   duration_measurement_method: range
+  correction_factor: 1.31

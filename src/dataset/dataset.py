@@ -125,11 +125,11 @@ class WaggleDanceDataset(Dataset):
 
             if img_id_temp < 1:
                 img_id_temp = 1
+
             elif img_id_temp > max_num:
                 img_id_temp = max_num
 
-            image_path_temp = os.path.join(self.path_data, 'rgb-images', 'Dancing', video,
-                                           '{:05d}.jpg'.format(img_id_temp))
+            image_path_temp = os.path.join(self.path_data, 'rgb-images', 'Dancing', video, '{:05d}.jpg'.format(img_id_temp))
 
             frame = Image.open(image_path_temp).convert('RGB')
 

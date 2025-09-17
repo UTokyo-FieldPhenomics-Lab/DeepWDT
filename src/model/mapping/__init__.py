@@ -1,1 +1,1 @@
-from .mapping import map_runs
+from .mapping import runs_2_loc

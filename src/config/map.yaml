@@ -1,0 +1,9 @@
+map:
+  detection_path:
+  hive_coordinates: []
+  video_framerate: 30
+  duration_measurement_method: range
+  clustering:
+    dbscan:
+      point_min: 10
+      distance_min: 10

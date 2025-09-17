@@ -25,7 +25,12 @@ def distance_from_duration(duration):
     return distance
 
 
-def runs_2_loc(detections, video_start_time, hive_coordinates, video_framerate, duration_measurement_method):
+def runs_2_loc(run_id,
+               run_duration,
+               run_angle,
+               hive_coordinates,
+               video_start_time,
+               first_frame_time):
 
     # Initialize the TimezoneFinder
     tf = TimezoneFinder()
@@ -35,53 +40,28 @@ def runs_2_loc(detections, video_start_time, hive_coordinates, video_framerate, 
     # Convert the start time of the video to the appropriate timezone
     video_start_time = timezone.localize(video_start_time)
 
-    # Add colony point to GeoDataFrame data
-    points = []
-    points.append({
-        'id': 'colony',
-        'latitude': hive_coordinates[0],
-        'longitude': hive_coordinates[1],
-        'geometry': ShapelyPoint(hive_coordinates[1], hive_coordinates[0])
-    })
+    # Get solar
+    solar_azimuth = get_azimuth(hive_coordinates[0], hive_coordinates[1], video_start_time + timedelta(seconds=first_frame_time))
 
-    grouped_by_run = detections.groupby('run_id')
+    # Calculate distance from duration
+    distance = distance_from_duration(run_duration)
 
-    for run_id, run_detections in grouped_by_run:
-        first_row = run_detections.iloc[0]
-        frame_id = first_row['frame_id']
-        angle = first_row['angle']
-        if duration_measurement_method == 'range':
-            frame_duration = run_detections['frame_id'].max() - run_detections['frame_id'].min()
-        elif duration_measurement_method == 'count':
-            frame_duration = len(run_detections)
+    # Calculate the target coordinates
+    origin = Point(hive_coordinates[0], hive_coordinates[1])
+    target_point = geodesic(meters=distance).destination(origin, solar_azimuth+math.degrees(run_angle))
 
-        # Calculate actual group start time
-        frame_offset = frame_id / video_framerate
-        group_start_time = video_start_time + timedelta(seconds=frame_offset)
+    point = {
+        'id': run_id,
+        'dance_angle': math.degrees(run_angle),
+        'solar_azimuth': solar_azimuth,
+        'dance_time': video_start_time + timedelta(seconds=first_frame_time),
+        'latitude': target_point.latitude,
+        'longitude': target_point.longitude,
+        'target_distance': distance,
+        'target_angle': solar_azimuth+math.degrees(run_angle),
+        'geometry': ShapelyPoint(target_point.longitude, target_point.latitude)}
 
-        # Get solar
-        solar_azimuth = get_azimuth(hive_coordinates[0], hive_coordinates[1], group_start_time)
-
-        # Calculate distance from duration
-        distance = distance_from_duration(frame_duration / video_framerate)
-
-        # Calculate the target coordinates
-        origin = Point(hive_coordinates[0], hive_coordinates[1])
-        target_point = geodesic(meters=distance).destination(origin, solar_azimuth+math.degrees(angle))
-
-        points.append({
-            'id': run_id,
-            'dance_angle': math.degrees(angle),
-            'solar_azimuth': solar_azimuth,
-            'dance_time': group_start_time,
-            'latitude': target_point.latitude,
-            'longitude': target_point.longitude,
-            'target_distance': distance,
-            'target_angle': solar_azimuth+math.degrees(angle),
-            'geometry': ShapelyPoint(target_point.longitude, target_point.latitude)
-        })
-
-    return points
+    return point
 
 
 def make_folium_map(points, save_folder):
@@ -134,15 +114,3 @@ def make_folium_map(points, save_folder):
     map_path = Path(save_folder) / "runs_map.html"
     m.save(map_path)
 
-
-def map_runs(detections, save_folder, video_name, framerate, duration_measurement_method):
-    parts = str(video_name.stem).split('_')
-    hive_y, hive_x = float(parts[1]), float(parts[2])
-    date_str = "_".join(parts[3:6])
-    time_str = "_".join(parts[6:])
-    datetime_str = f"{date_str}_{time_str}"
-    video_start_time = datetime.strptime(datetime_str, "%Y_%m_%d_%H_%M_%S")
-
-    points = runs_2_loc(detections, video_start_time, (hive_y, hive_x), framerate, duration_measurement_method)
-
-    make_folium_map(points, save_folder)

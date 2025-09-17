@@ -7,7 +7,7 @@ from tqdm import tqdm
 from src.dataset import build_dataset, CollateFunction, EvalTransform
 from src.evaluation import get_metrics
 from src.model import build_yowo_model, track
-from src.utils import thieve_confidence, grouped_nms, visualize_evaluation_results
+from src.utils import thieve_confidence, grouped_nms, make_evaluation_graphs, make_evaluation_trajectory_graphs
 from src.config import load_configuration
 
 
@@ -103,7 +103,7 @@ def eval_function(path_configuration):
         print(f'[Detected runs: 0%]')
     else:
         detections[['x0', 'x1', 'y0', 'y1']] = detections[['x0', 'x1', 'y0', 'y1']] * eval_configuration.dataset.image_size[0]
-        eval_metrics, angles, durations = get_metrics(detections, validation_dataset.df)
+        eval_metrics, angles, durations, matches = get_metrics(validation_dataset.df, detections, eval_configuration.correction_factor)
 
         # Print metrics
         print(
@@ -126,10 +126,12 @@ def eval_function(path_configuration):
         path_graphs_gtvsp_angles = path_graphs / 'gt_vs_predicted_angles.png'
         path_graphs_gtvsp_durations = path_graphs / 'gt_vs_predicted_durations.png'
         path_graphs_duration_error_vs_duration = path_graphs / 'duration_errors_vs_durations.png'
-        visualize_evaluation_results(angles,
-                                     durations,
-                                     path_graphs_gtvsp_angles,
-                                     path_graphs_gtvsp_durations,
-                                     path_graphs_duration_error_vs_duration,
-                                     eval_metrics['angle_r2'],
-                                     eval_metrics['duration_r2'])
+        make_evaluation_graphs(angles,
+                               durations,
+                               path_graphs_gtvsp_angles,
+                               path_graphs_gtvsp_durations,
+                               path_graphs_duration_error_vs_duration,
+                               eval_metrics['angle_r2'],
+                               eval_metrics['duration_r2'])
+        trajectory_graphs_path = path_graphs / 'trajectories'
+        make_evaluation_trajectory_graphs(validation_dataset.df, detections, matches, trajectory_graphs_path, eval_configuration.dataset.image_size[0])

@@ -175,3 +175,4 @@ venv
 .DS_Store
 .idea
 .pypirc
+/src/config/perso

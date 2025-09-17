@@ -1,8 +1,6 @@
-eval:
-  device: cuda
-  weights:
+train:
   dataset:
-    name:
+    name: apis_dorsata_x_mellifera_01
     image_size: [224]
     len_clip: 32
     classes: ['Dancing']
@@ -13,16 +11,17 @@ eval:
       name: 'yolo_free_nano'
       frozen: false
       pretrained: true
-      stride: [8,16,32]
+      stride: [8, 16, 32]
     backbone_3d:
       name: 'shufflenetv2'
       frozen: false
       pretrained: true
       memory_momentum: 0.9
       model_size: "1.0x"
+    resume:
     center_sampling_radius: 2.5
     confidence_threshold: 0.01
-    nms_threshold: 0.5
+    nms_threshold: 0.3
     top_k: 10
     head_dim: 64
     head_norm: BN
@@ -30,15 +29,47 @@ eval:
     num_cls_heads: 2
     num_reg_heads: 2
     head_depthwise: true
+  augmentation:
+    exposure: 1.5
+    hue: 0.1
+    jitter: 0.2
+    saturation: 1.5
+  device: cuda
+  max_epoch: 20
+  mlflow: true
+  batch_size: 32
+  num_workers: 8
+  solver:
+    accumulate: 1
+    base_lr: 0.00005
+    min_lr_ratio: 0.25
+    warmup_epoch: 1
+    no_decrease_lr_epoch: 5
+    optimizer: adamw
+    momentum: 0.9
+    weight_decay: 0.0005
+    wp_iter: 500
+    loss:
+      confidence_weight: 1
+      class_weight: 1
+      regression_weight: 5
+      focal_loss: false
+
+eval:
+  dataset:
+    name: apis_dorsata_x_mellifera_01
+    image_size: [224]
+    len_clip: 32
+    classes: ['Dancing']
+    centered_clip: false
   batch_size: 32
   num_workers: 8
   split: val
   confidence_threshold: 0.5
-  iou_threshold: 0.5
+  iou_threshold: 0.01
   nms_threshold: 0.5
   tracking_method: SORT
   track_iou_threshold: 0.5
   track_duration_threshold: 10
   track_max_age: 5
   duration_measurement_method: range
-  correction_factor: 3.44

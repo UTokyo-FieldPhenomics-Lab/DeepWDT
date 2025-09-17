@@ -99,6 +99,7 @@ class EvalConfig:
     track_duration_threshold: int = 15
     track_max_age: int = 3
     duration_measurement_method: str = range
+    correction_factor: float = 0
 
 @dataclass
 class InferConfig:
@@ -117,13 +118,29 @@ class InferConfig:
     track_max_age: int = 5
     duration_measurement_method: str = range # or count
 
+@dataclass
+class DbscanConfig:
+    point_min: int = 10
+    distance_min: int = 100
+
+@dataclass
+class ClusterConfig:
+    dbscan: DbscanConfig
+
+@dataclass
+class MapConfig:
+  detection_path: str
+  hive_coordinates: list
+  video_framerate: float
+  duration_measurement_method: str
+  clustering: ClusterConfig
 
 @dataclass
 class Config:
     train: Optional[TrainConfig] = None
     eval: Optional[EvalConfig] = None
     infer: Optional[InferConfig] = None
-
+    map: Optional[MapConfig] = None
 
 def load_configuration(path_configuration):
     yaml_config = OmegaConf.load(path_configuration)

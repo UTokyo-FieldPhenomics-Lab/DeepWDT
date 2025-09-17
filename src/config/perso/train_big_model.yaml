@@ -1,6 +1,6 @@
 train:
   dataset:
-    name:
+    name: apis_dorsata_x_mellifera_01
     image_size: [224]
     len_clip: 32
     classes: ['Dancing']
@@ -8,7 +8,7 @@ train:
   model:
     name: 'yowo'
     backbone_2d:
-      name: 'yolo_free_nano'
+      name: 'yolo_free_tiny'
       frozen: false
       pretrained: true
       stride: [8, 16, 32]
@@ -17,7 +17,7 @@ train:
       frozen: false
       pretrained: true
       memory_momentum: 0.9
-      model_size: "1.0x"
+      model_size: "2.0x"
     resume:
     center_sampling_radius: 2.5
     confidence_threshold: 0.01
@@ -28,7 +28,7 @@ train:
     head_act: lrelu
     num_cls_heads: 2
     num_reg_heads: 2
-    head_depthwise: true
+    head_depthwise: false
   augmentation:
     exposure: 1.5
     hue: 0.1
@@ -57,7 +57,7 @@ train:
 
 eval:
   dataset:
-    name:
+    name: apis_dorsata_x_mellifera_01
     image_size: [224]
     len_clip: 32
     classes: ['Dancing']
