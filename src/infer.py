@@ -23,7 +23,7 @@ def infer_function(path_configuration):
     run_name = f"{datetime.now().strftime('%y%m%d-%H%M%S')}-{infer_configuration.dataset.name}"
     run_path = Path(f'runs/infer/{run_name}')
     os.makedirs(run_path / 'videos')
-    os.makedirs(run_path / 'runs')
+    os.makedirs(run_path / 'detections')
 
     # Get video names
     video_folder = Path('data') / infer_configuration.dataset.name / 'videos'
@@ -119,6 +119,7 @@ def infer_function(path_configuration):
         df_results = track(df_results,
                            iou_threshold=infer_configuration.track_iou_threshold,
                            duration_threshold=infer_configuration.track_duration_threshold,
+                           duration_measurement_method=infer_configuration.track_duration_measurement_method,
                            max_age=infer_configuration.track_max_age)
         df_results['run_id'] = df_results['run_id'].astype(int)
 
@@ -128,5 +129,5 @@ def infer_function(path_configuration):
             df_results[['y0', 'y1']] = df_results[['y0', 'y1']] * height
 
         # Save and visualize results
-        make_inference_video(df_results, run_path / 'videos')
-        df_results.to_csv(run_path / 'runs' / f"{video_name.stem}.csv", index=False)
+        make_inference_video(df_results, run_path / 'videos', infer_configuration.track_duration_measurement_method)
+        df_results.to_csv(run_path / 'detections' / f"{video_name.stem}.csv", index=False)

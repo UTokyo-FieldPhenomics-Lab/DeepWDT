@@ -229,7 +229,9 @@ def train_function(run_name, path_configuration):
             print('2. Tracking dancing bees...')
             detections = track(detections,
                                iou_threshold = eval_configuration.track_iou_threshold,
-                               duration_threshold = eval_configuration.track_duration_threshold)
+                               duration_threshold = eval_configuration.track_duration_threshold,
+                               duration_measurement_method = eval_configuration.track_duration_measurement_method,
+                               max_age=eval_configuration.track_max_age)
 
             # Compute evaluation metrics
             print('3. Computing evaluation metrics...')

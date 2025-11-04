@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
 
-def make_inference_video(detections, save_folder):
+def make_inference_video(detections, save_folder, duration_measurement_method = 'range'):
     grouped = detections.groupby('video')
 
     for video_name, video_detections in grouped:
@@ -49,7 +49,14 @@ def make_inference_video(detections, save_folder):
 
                 cv2.rectangle(frame, (x0, y0), (x1, y1), color, 1)
 
-                label = f"id {run_id}, c. {round(detection['confidence'], 2)}"
+                run_df = video_detections[video_detections['run_id'] == detection['run_id']]['frame_id']
+                if duration_measurement_method == 'count':
+                    run_duration = len(run_df)
+
+                elif duration_measurement_method == 'range':
+                    run_duration = run_df.max() - run_df.min() + 1
+
+                label = f"id {run_id}, c. {round(detection['confidence'], 2)}, dur. {run_duration}, ang. {round(detection['angle'], 2)}"
                 banner_width = x0 + len(label) * 10
                 cv2.rectangle(frame, (x0, y0 - 30), (banner_width, y0), color, -1)
                 cv2.putText(frame, label, (x0, y0 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)

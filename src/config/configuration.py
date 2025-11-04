@@ -116,7 +116,7 @@ class InferConfig:
     track_duration_threshold: int = 15
     cluster_dances: bool = True
     track_max_age: int = 5
-    duration_measurement_method: str = range # or count
+    track_duration_measurement_method: str = 'range' # or count
 
 @dataclass
 class DbscanConfig:
@@ -133,6 +133,7 @@ class MapConfig:
   hive_coordinates: list
   video_framerate: float
   duration_measurement_method: str
+  duration_threshold: int
   clustering: ClusterConfig
 
 @dataclass

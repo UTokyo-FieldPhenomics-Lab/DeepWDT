@@ -36,13 +36,13 @@ def mapping_function(configuration_path):
         'geometry': ShapelyPoint(hive_coordinates[1], hive_coordinates[0])
     })
 
-    # Process each detection file
     detection_path = map_configuration.detection_path
     duration_measurement_method = map_configuration.duration_measurement_method
 
     # Get all CSV files in the detection path
     csv_files = glob.glob(f"{detection_path}/*.csv")
 
+    # Process each detection file
     for csv_file in csv_files:
         # Read the CSV file
         detections = pd.read_csv(csv_file)
@@ -59,10 +59,20 @@ def mapping_function(configuration_path):
         grouped = detections.groupby('run_id')
 
         for run_id, run_detections in grouped:
+
+            # Compute dance duration
             if duration_measurement_method == 'range':
-                run_duration = (run_detections['frame_id'].max() - run_detections['frame_id'].min()) / framerate
+                run_duration = (run_detections['frame_id'].max() - run_detections['frame_id'].min()) - 7
+
             elif duration_measurement_method == 'count':
-                run_duration = len(run_detections) / framerate
+                run_duration = len(run_detections) - 7
+
+            # Threshold dance duration
+            if run_duration < map_configuration.duration_threshold:
+                continue
+
+            # Convert dance duration from frame to seconds
+            run_duration = run_duration / framerate
 
             # Get run angle from the first row
             run_angle = run_detections['angle'].iloc[0]
@@ -81,6 +91,8 @@ def mapping_function(configuration_path):
                 video_start_time=video_start_time,
                 first_frame_time=first_frame_time
             )
+
+            target['video_name'] = video_name
 
             points.append(target)
 

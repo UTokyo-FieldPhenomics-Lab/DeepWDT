@@ -1,8 +1,9 @@
 map:
-  detection_path: C:\Users\CREST\Documents\GitHub\DeepWDT\runs\infer\250716-212732-paper_inference\runs
-  hive_coordinates: [35.68644918025076, 139.7657563998048]
+  detection_path: C:\Users\CREST\Documents\GitHub\DeepWDT\runs\infer\250928-165844-marunouchi_01\detections
+  hive_coordinates: [35.686400, 139.765700]
   video_framerate: 30
   duration_measurement_method: range
+  duration_threshold: 30
   clustering:
     dbscan:
       point_min: 10

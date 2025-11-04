@@ -5,7 +5,7 @@ from .sort import Sort, iou_batch
 from .angles import get_angles
 
 
-def track(df, iou_threshold=0.3, duration_threshold=15, max_age=5):
+def track(df, iou_threshold=0.3, duration_threshold=15, duration_measurement_method='range', max_age=5):
     """
     Produces a tube id for each detection by tracking detections in videos
     throughout frames using SORT.
@@ -30,7 +30,7 @@ def track(df, iou_threshold=0.3, duration_threshold=15, max_age=5):
         video_df = df[df['video'] == video_id].copy()
         video_df.sort_values(by='frame_id', inplace=True)
         # Initialize a SORT tracker for this video
-        tracker = Sort(max_age=3, iou_threshold=iou_threshold)
+        tracker = Sort(max_age=max_age, iou_threshold=iou_threshold)
         # To collect processed frames for the video
         video_results = []
 
@@ -68,7 +68,7 @@ def track(df, iou_threshold=0.3, duration_threshold=15, max_age=5):
 
     df_results = pd.concat(results, ignore_index=True)
 
-    df_results = thieve_durations(df_results, threshold=duration_threshold)
+    df_results = thieve_durations(df_results, threshold=duration_threshold, measurement_method=duration_measurement_method)
 
     df_results = get_angles(df_results)
 
@@ -77,11 +77,18 @@ def track(df, iou_threshold=0.3, duration_threshold=15, max_age=5):
     return df_results
 
 
-def thieve_durations(detections, threshold):
+def thieve_durations(detections, threshold, measurement_method):
     """
      Thieves runs based on the durations.
     """
 
-    group_counts = detections.groupby('run_id')['frame_id'].transform('count')
+    if measurement_method == 'count':
+        group_counts = detections.groupby('run_id')['frame_id'].transform('count')
+
+    elif measurement_method == 'range':
+        group_counts = (
+            detections.groupby('run_id')['frame_id']
+            .transform(lambda x: x.max() - x.min() + 1)
+        )
 
     return detections[group_counts >= threshold]
