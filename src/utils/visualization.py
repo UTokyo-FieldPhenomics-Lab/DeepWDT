@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import random
 from pathlib import Path
-
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
@@ -58,8 +58,8 @@ def make_inference_video(detections, save_folder, duration_measurement_method = 
 
                 label = f"id {run_id}, c. {round(detection['confidence'], 2)}, dur. {run_duration}, ang. {round(detection['angle'], 2)}"
                 banner_width = x0 + len(label) * 10
-                cv2.rectangle(frame, (x0, y0 - 30), (banner_width, y0), color, -1)
-                cv2.putText(frame, label, (x0, y0 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                # cv2.rectangle(frame, (x0, y0 - 30), (banner_width, y0), color, -1)
+                # cv2.putText(frame, label, (x0, y0 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
                 center_x = (x0 + x1) // 2
                 center_y = (y0 + y1) // 2
@@ -67,7 +67,7 @@ def make_inference_video(detections, save_folder, duration_measurement_method = 
                 end_x = int(center_x + vector_length * np.sin(angle))
                 end_y = int(center_y - vector_length * np.cos(angle))
 
-                cv2.arrowedLine(frame, (center_x, center_y), (end_x, end_y), color, 2, tipLength=0.3)
+                cv2.arrowedLine(frame, (center_x, center_y), (end_x, end_y), color, 1, tipLength=0.3)
 
             video_writer.write(frame)
             frame_id += 1
@@ -207,94 +207,77 @@ def make_evaluation_graphs(angles: list,
 
 
 def make_evaluation_trajectory_graphs(ground_truth, detections, matches, trajectory_graphs_path, graph_size):
-    """
-    Creates compared run visualization graphs.
-    For each unique video / run_id group in matches, it should make a png with two graphs, one for ground truth and one for detected runs. These graphs are horizontally concatenated.
-    Each has one point for each bounding box center (one bbox for one frame detection). Colors of the points follow magma (gt) and cividis (detection) charts in opposite orders.
-    Graphs are each 448x448 pixels, and the grid is at every 100 pixels, light gray. Both graphs are next to each other.
-    Then a dark red line is added to show the angle. Angles in the dataframes are oriented so that 0 is upward and clockwise positive / anticlockwise negative, and in radians.
 
-    Args:
-        ground_truth (DataFrame): Ground truth runs dataframe. Has 8 columns: "video", "run_id", "frame_id", "x0", "x1", "y0", "y1", "angle". Coordinates are absolute.
-        detections (DataFrame): Detected runs dataframe. Has 8 columns: "video", "run_id" "frame_id", "x0", "x1", "y0", "y1", "angle". Coordinates are absolute.
-        matches (DataFrame): Matched id between ground truth runs and detected runs. Has 3 columns: "video" (video name), "gt_run_id", "detection_run_id".
-        trajectory_graphs_path (Path): Path to save trajectory graphs.
-    """
-    import matplotlib.pyplot as plt
-    import matplotlib.cm as cm
-    import numpy as np
-    import os
-
-    # Create directory if it doesn't exist
     os.makedirs(trajectory_graphs_path, exist_ok=True)
 
-    # Set figure size constants
     GRAPH_SIZE = graph_size
     GRID_STEP = 100
 
-    # Process each matching pair of runs
     for _, match in matches.iterrows():
         video = match['video']
         gt_run_id = match['gt_run_id']
         detection_run_id = match['detection_run_id']
 
-        # Filter dataframes to get the specific runs
-        gt_run = ground_truth[(ground_truth['video'] == video) & 
-                              (ground_truth['run_id'] == gt_run_id)].copy()
+        gt_run = ground_truth[
+            (ground_truth['video'] == video) &
+            (ground_truth['run_id'] == gt_run_id)
+        ].copy()
 
-        detected_run = detections[(detections['video'] == video) & 
-                                  (detections['run_id'] == detection_run_id)].copy()
+        detected_run = detections[
+            (detections['video'] == video) &
+            (detections['run_id'] == detection_run_id)
+        ].copy()
 
         if gt_run.empty or detected_run.empty:
             continue
 
-        # Create a figure with two subplots side by side
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(GRAPH_SIZE*2/100, GRAPH_SIZE/100), dpi=100)
+        fig, (ax1, ax2) = plt.subplots(
+            1, 2,
+            figsize=(GRAPH_SIZE * 2 / 100, GRAPH_SIZE / 100),
+            dpi=100
+        )
 
-        # Calculate center points for each bounding box
         gt_run['center_x'] = (gt_run['x0'] + gt_run['x1']) / 2
         gt_run['center_y'] = (gt_run['y0'] + gt_run['y1']) / 2
         detected_run['center_x'] = (detected_run['x0'] + detected_run['x1']) / 2
         detected_run['center_y'] = (detected_run['y0'] + detected_run['y1']) / 2
 
-        # Setup colormaps - magma for ground truth (in reverse) and cividis for detections (in reverse)
         gt_cmap = cm.get_cmap('magma_r')
         det_cmap = cm.get_cmap('cividis_r')
 
-        # Normalize frame IDs for coloring
         if len(gt_run) > 1:
-            gt_min_frame = gt_run['frame_id'].min()
-            gt_max_frame = gt_run['frame_id'].max()
-            gt_norm = plt.Normalize(gt_min_frame, gt_max_frame)
+            gt_norm = plt.Normalize(gt_run['frame_id'].min(), gt_run['frame_id'].max())
         else:
             gt_norm = plt.Normalize(0, 1)
 
         if len(detected_run) > 1:
-            det_min_frame = detected_run['frame_id'].min()
-            det_max_frame = detected_run['frame_id'].max()
-            det_norm = plt.Normalize(det_min_frame, det_max_frame)
+            det_norm = plt.Normalize(detected_run['frame_id'].min(), detected_run['frame_id'].max())
         else:
             det_norm = plt.Normalize(0, 1)
 
-        # Plot ground truth trajectory (left plot)
-        for i, row in gt_run.iterrows():
-            color = gt_cmap(gt_norm(row['frame_id']))
-            ax1.scatter(row['center_x'], row['center_y'], color=color, s=10)
+        for _, row in gt_run.iterrows():
+            ax1.scatter(
+                row['center_x'],
+                row['center_y'],
+                color=gt_cmap(gt_norm(row['frame_id'])),
+                s=10
+            )
 
-        # Plot detected trajectory (right plot)
-        for i, row in detected_run.iterrows():
-            color = det_cmap(det_norm(row['frame_id']))
-            ax2.scatter(row['center_x'], row['center_y'], color=color, s=10)
+        for _, row in detected_run.iterrows():
+            ax2.scatter(
+                row['center_x'],
+                row['center_y'],
+                color=det_cmap(det_norm(row['frame_id'])),
+                s=10
+            )
 
-        # Add angle vectors using the first detection's angle for each run
         if not gt_run.empty:
             first_gt = gt_run.iloc[0]
             center_x, center_y = first_gt['center_x'], first_gt['center_y']
             angle = first_gt['angle']
-            # Convert angle to vector (0 is upward, clockwise positive)
-            vector_length = 50  # Length of the vector line
+            vector_length = 50
             dx = vector_length * np.sin(angle)
-            dy = -vector_length * np.cos(angle)  # Negative because y-axis is inverted in image coords
+            dy = -vector_length * np.cos(angle)
             ax1.arrow(center_x, center_y, dx, dy, color='darkred', width=1, head_width=5, length_includes_head=True)
 
         if not detected_run.empty:
@@ -303,28 +286,21 @@ def make_evaluation_trajectory_graphs(ground_truth, detections, matches, traject
             angle = first_det['angle']
             vector_length = 50
             dx = vector_length * np.sin(angle)
-            dy = -vector_length * np.cos(angle)  # Negative because y-axis is inverted in image coords
+            dy = -vector_length * np.cos(angle)
             ax2.arrow(center_x, center_y, dx, dy, color='darkred', width=1, head_width=5, length_includes_head=True)
 
-        # Configure both plots with grid lines and equal aspects
         for ax in [ax1, ax2]:
-            # Set grid lines at every GRID_STEP pixels
             ax.grid(True, color='lightgray', linestyle='-', linewidth=0.5)
-            ax.set_xticks(np.arange(0, GRAPH_SIZE+1, GRID_STEP))
-            ax.set_yticks(np.arange(0, GRAPH_SIZE+1, GRID_STEP))
-
-            # Set aspect ratio to be equal
+            ax.set_xticks(np.arange(0, GRAPH_SIZE + 1, GRID_STEP))
+            ax.set_yticks(np.arange(0, GRAPH_SIZE + 1, GRID_STEP))
             ax.set_aspect('equal')
-
-            # Set limits to match the image size
             ax.set_xlim(0, GRAPH_SIZE)
             ax.set_ylim(0, GRAPH_SIZE)
+            ax.invert_yaxis()
 
-        # Set titles
-        ax1.set_title(f'Ground truth')
-        ax2.set_title(f'Prediction')
+        ax1.set_title('Ground truth')
+        ax2.set_title('Prediction')
 
-        # Save the figure
         plt.tight_layout()
         output_file = trajectory_graphs_path / f"{video}_gt{gt_run_id}_det{detection_run_id}.png"
         plt.savefig(output_file, dpi=300, bbox_inches='tight')

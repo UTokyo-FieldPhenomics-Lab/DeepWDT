@@ -1,13 +1,14 @@
 eval:
   device: cuda
-  weights: C:\Users\CREST\Documents\GitHub\DeepWDT\runs\train\250709-160557-tops-chimp-3074\weights\epoch_8.pth
+  weights: D:\GitHub\DeepWDT\runs\train\250926-155653-actual-aphid-5056\weights\epoch_20.pth
+#  weights: C:\Users\CREST\Documents\GitHub\DeepWDT\runs\train\250709-160557-tops-chimp-3074\weights\epoch_8.pth
 #  weights: C:\Users\CREST\Documents\GitHub\DeepWDT\runs\train\250701-231200-fit-cattle-5645\weights\epoch_20.pth
 #  weights: C:\Users\CREST\Documents\GitHub\DeepWDT\runs\train\250706-212655-living-panda-5489\weights\epoch_20.pth
   dataset:
 #    name: apis_dorsata_01
     name: apis_dorsata_x_mellifera_01
     image_size: [224]
-    len_clip: 32
+    len_clip: 16
     classes: ['Dancing']
     centered_clip: false
   model:
