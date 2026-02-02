@@ -6,14 +6,6 @@ This repository is the official implementation of DeepWDT (Deep Waggle Dance Tra
 
 ![Description](docs/example.gif)
 
-## <div align="center">To-do</div>
-- [ ] Make a "quick start" google colab of the inference pipeline
-- [ ] Add a lightweight version of the deep learning model for quicker inference
-
-## <div align="center">Quick Start</div>
-
-*Google colab version coming soon.*
-
 ## <div align="center">Requirements</div>
 
 We recommend you to use Anaconda to create a conda environment:
