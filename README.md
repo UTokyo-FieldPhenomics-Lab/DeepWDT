@@ -123,4 +123,4 @@ Our software is released under the MIT license.
 
 ## <div align="center">Contact</div>
 
-DeepWDT is developed and maintained by Sylvain Grison (sylvain.grison@fieldphenomics.com).
+Laboratory of field phenomics.
