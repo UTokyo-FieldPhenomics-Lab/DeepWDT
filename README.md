@@ -32,9 +32,9 @@ pip install -r requirements.txt
 
 ### Prepare our dataset
 
-As an example, the *Apis dorsata* training dataset can be downloaded at *link coming soon*.  
+Our dataset can be found at https://drive.google.com/drive/folders/1VCdHcJjvrAQEQ-1pFCNdyMLS714-yYRJ?usp=sharing.
 
-To prepare it, copy the 'videos' folder and 'annotations.csv' into 'data/bengaluru_01' and launch the following command line:
+To prepare it, copy the 'videos' folder and 'annotations.csv' into 'data/name_of_the_dataset' and launch the following command line:
 ```Shell
 python src/dataset/unpack.py --dataset name_of_the_dataset
 ```
@@ -114,8 +114,6 @@ Results of the inference are saved to runs/infer as:
 * a html map to visualize the translated targets
 
 Currently, the model used to translate durations to distances is from https://doi.org/10.1016/j.anbehav.2019.01.016.
-
-Parameters are ...
 
 ## <div align="center">License</div>
 
